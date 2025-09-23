@@ -6,16 +6,20 @@ import path from 'node:path';
 // is no longer free to run, investigate incremental compilation
 
 const compileScript = async (src:string, dst: string) => {
-    const bundledLua = bundle(src);
-    const directory = path.dirname(dst);
-    await mkdir(directory, {recursive: true});
+    const srcDir = path.dirname(src);
+    const outDir = path.dirname(dst);
+    const bundledLua = bundle(src, { paths: ['src/?.lua', `${srcDir}/?.lua`] });
+    await mkdir(outDir, {recursive: true});
     const handle = await open(dst, 'w');
     console.log(`writing to ${dst}`);
     await handle.write(bundledLua);
 };
 
 (async () =>{
-    for await (const entry of glob('src/**.lua')) {
+    for await (const entry of glob('src/**/*.lua')) {
+        // skip lib files
+        if(path.basename(entry).startsWith("lib")) continue;
+        // write to build dir
         const parts = entry.split(path.sep);
         parts[0] = "build";
         const outpath = path.join(...parts);
