@@ -4,10 +4,12 @@
   "description": "A collection of lua scripts for the something needs doing plugin in final fantasy xiv",
   "scripts": {
     "build": "tsx build.ts",
-    "check": "lua-language-server --check src/**.lua"
+    "check": "lua-language-server --check src/**.lua",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "husky": "^9.1.7",
     "luabundle": "^1.7.0",
     "tsx": "^4.20.5"
   }
