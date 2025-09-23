@@ -1,0 +1,14 @@
+{
+  "name": "snd-scripts",
+  "version": "1.0.0",
+  "description": "A collection of lua scripts for the something needs doing plugin in final fantasy xiv",
+  "scripts": {
+    "build": "tsx build.ts",
+    "check": "lua-language-server --check src/**.lua"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "luabundle": "^1.7.0",
+    "tsx": "^4.20.5"
+  }
+}
