@@ -1,3 +1,4 @@
+import("System.Numerics")
 CharacterCondition = {
     dead=2,
     mounted=4,

@@ -34,7 +34,7 @@ function GetTargetName()
     if Svc.Targets.Target == nil then
         return ""
     else
-        return Svc.Targets.Target.Name:GetText()
+        return Svc.Targets.Target.Name.TextValue
     end
 end
 
@@ -204,7 +204,7 @@ function SelectNextZone()
     nextZone.aetheryteList = {}
     local aetherytes = GetAetherytesInZone(nextZone.zoneId)
     for _, aetheryte in ipairs(aetherytes) do
-        local aetherytePos = Instances.Telepo:GetAetherytePosition(aetheryte.AetheryteId)
+        local aetherytePos = Instances.Telepo.GetAetherytePosition(aetheryte.AetheryteId)
         local aetheryteTable = {
             aetheryteName = GetAetheryteName(aetheryte),
             aetheryteId = aetheryte.AetheryteId,
@@ -219,46 +219,6 @@ function SelectNextZone()
     end
 
     return nextZone
-end
-
-function BuildFateTable(fateObj)
-    Dalamud.Log("[FATE] Enter->BuildFateTable")
-    local fateTable = {
-        fateObject = fateObj,
-        fateId = fateObj.Id,
-        fateName = fateObj.Name,
-        duration = fateObj.Duration,
-        startTime = fateObj.StartTimeEpoch,
-        position = fateObj.Location,
-        isBonusFate = fateObj.IsBonus,
-    }
-
-    fateTable.npcName = GetFateNpcName(fateTable.fateName)
-
-    local currentTime = EorzeaTimeToUnixTime(Instances.Framework.EorzeaTime)
-    if fateTable.startTime == 0 then
-        fateTable.timeLeft = 900
-    else
-        fateTable.timeElapsed = currentTime - fateTable.startTime
-        fateTable.timeLeft = fateTable.duration - fateTable.timeElapsed
-    end
-
-    fateTable.isCollectionsFate = IsCollectionsFate(fateTable.fateName)
-    fateTable.isBossFate = IsBossFate(fateTable.fateObject)
-    fateTable.isOtherNpcFate = IsOtherNpcFate(fateTable.fateName)
-    fateTable.isSpecialFate = IsSpecialFate(fateTable.fateName)
-    fateTable.isBlacklistedFate = IsBlacklistedFate(fateTable.fateName)
-
-    fateTable.continuationIsBoss = false
-    fateTable.hasContinuation = false
-    for _, continuationFate in ipairs(SelectedZone.fatesList.fatesWithContinuations) do
-        if fateTable.fateName == continuationFate.fateName then
-            fateTable.hasContinuation = true
-            fateTable.continuationIsBoss = continuationFate.continuationIsBoss
-        end
-    end
-
-    return fateTable
 end
 
 --[[
@@ -624,18 +584,8 @@ end
 
 function ChangeInstance()
     if SuccessiveInstanceChanges >= NumberOfInstances then
-        if CompanionScriptMode then
-            local shouldWaitForBonusBuff = WaitIfBonusBuff and (HasStatusId(1288) or HasStatusId(1289))
-            if WaitingForFateRewards == nil and not shouldWaitForBonusBuff then
-                StopScript = true
-            else
-                Dalamud.Log("[Fate Farming] Waiting for buff or fate rewards")
-                yield("/wait 3")
-            end
-        else
-            yield("/wait 10")
-            SuccessiveInstanceChanges = 0
-        end
+        yield("/wait 10")
+        SuccessiveInstanceChanges = 0
         return
     end
 
@@ -699,7 +649,8 @@ function ChangeInstance()
     Dalamud.Log("[FATE] State Change: Ready")
 end
 
-function WaitForContinuation()
+---@param mainClass JobWrapper
+function WaitForContinuation(mainClass)
     if InActiveFate() then
         Dalamud.Log("WaitForContinuation IsInFate")
         local nextFateId = Fates.GetNearestFate()
@@ -719,13 +670,13 @@ function WaitForContinuation()
         if BossFatesClass ~= nil then
             local currentClass = Player.Job.Id
             Dalamud.Log("WaitForContinuation "..CurrentFate.fateName)
-            if not Player.IsPlayerOccupied then
-                if CurrentFate.continuationIsBoss and currentClass ~= BossFatesClass.classId then
+            if not Player.IsBusy then
+                if CurrentFate.continuationIsBoss and currentClass ~= BossFatesClass.Id then
                     Dalamud.Log("WaitForContinuation SwitchToBoss")
                     yield("/gs change "..BossFatesClass.className)
-                elseif not CurrentFate.continuationIsBoss and currentClass ~= MainClass.classId then
+                elseif not CurrentFate.continuationIsBoss and currentClass ~= MainClass.Id then
                     Dalamud.Log("WaitForContinuation SwitchToMain")
-                    yield("/gs change "..MainClass.className)
+                    yield("/gs change "..mainClass.Name)
                 end
             end
         end
@@ -955,11 +906,11 @@ function MoveToFate()
     -- change to secondary class if its a boss fate
     if BossFatesClass ~= nil then
         local currentClass = Player.Job.Id
-        if CurrentFate.isBossFate and currentClass ~= BossFatesClass.classId then
-            yield("/gs change "..BossFatesClass.className)
+        if CurrentFate.isBossFate and currentClass ~= BossFatesClass.Id then
+            yield("/gs change "..BossFatesClass.Name)
             return
-        elseif not CurrentFate.isBossFate and currentClass ~= MainClass.classId then
-            yield("/gs change "..MainClass.className)
+        elseif not CurrentFate.isBossFate and currentClass ~= MainClass.Id then
+            yield("/gs change "..MainClass.Name)
             return
         end
     end
@@ -1468,7 +1419,8 @@ function HandleUnexpectedCombat()
     yield("/wait 1")
 end
 
-function DoFate()
+---@param mainClass JobWrapper
+function DoFate(mainClass)
     Dalamud.Log("[FATE] DoFate")
     if WaitingForFateRewards == nil or WaitingForFateRewards.fateId ~= CurrentFate.fateId then
         WaitingForFateRewards = CurrentFate
@@ -1481,9 +1433,9 @@ function DoFate()
         yield("/gs change "..BossFatesClass.className)
         yield("/wait 1")
         return
-    elseif not CurrentFate.isBossFate and BossFatesClass ~= nil and currentClass ~= MainClass.classId and not Player.IsBusy then
+    elseif not CurrentFate.isBossFate and BossFatesClass ~= nil and currentClass ~= MainClass.Id and not Player.IsBusy then
         TurnOffCombatMods()
-        yield("/gs change "..MainClass.className)
+        yield("/gs change "..mainClass.Name)
         yield("/wait 1")
         return
     elseif InActiveFate() and (CurrentFate.fateObject.MaxLevel < Player.Job.Level) and not Player.IsLevelSynced then
@@ -1726,15 +1678,6 @@ function Ready()
             Dalamud.Log("[FATE] State Change: ChangingInstances")
             return
         end
-        if CompanionScriptMode and not shouldWaitForBonusBuff then
-            if WaitingForFateRewards == nil then
-                StopScript = true
-                Dalamud.Log("[FATE] StopScript: Ready")
-            else
-                Dalamud.Log("[FATE] Waiting for fate rewards")
-            end
-            return
-        end
         if DownTimeWaitAtNearestAetheryte and (Svc.Targets.Target == nil or GetTargetName() ~= "aetheryte" or GetDistanceToTarget() > 20) then
             State = CharacterState.flyBackToAetheryte
             Dalamud.Log("[FATE] State Change: FlyBackToAetheryte")
@@ -1754,16 +1697,6 @@ function Ready()
             Dalamud.Log("[FATE] State Change: FlyBackToAetheryte")
         else
             yield("/wait 10")
-        end
-        return
-    end
-
-    if CompanionScriptMode and DidFate and not shouldWaitForBonusBuff then
-        if WaitingForFateRewards == nil then
-            StopScript = true
-            Dalamud.Log("[FATE] StopScript: DidFate")
-        else
-            Dalamud.Log("[FATE] Waiting for fate rewards")
         end
         return
     end
@@ -2156,7 +2089,7 @@ function GetNodeText(addonName, nodePath, ...)
     repeat
         yield("/wait 0.1")
     until addon.Ready
-    return addon:GetNode(nodePath, ...).Text
+    return addon.GetNode(nodePath, ...).Text
 end
 
 function ARRetainersWaitingToBeProcessed()

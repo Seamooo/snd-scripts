@@ -149,9 +149,6 @@ configs:
     default: "Gems"
     is_choice: true
     choices: ["All", "Gems", "None"]
-  Companion Script Mode:
-    description: Enable to use companison scripts with main Fate Farming script.
-    default: false
 [[End Metadata]]
 --]=====]
 --[[
@@ -243,31 +240,6 @@ This Plugins are Optional and not needed unless you have it enabled in the setti
 require('libfate-utils')
 
 --#region Main
-
-CharacterState = {
-    ready                   = Ready,
-    dead                    = HandleDeath,
-    unexpectedCombat        = HandleUnexpectedCombat,
-    mounting                = MountState,
-    npcDismount             = NpcDismount,
-    MiddleOfFateDismount    = MiddleOfFateDismount,
-    moveToFate              = MoveToFate,
-    interactWithNpc         = InteractWithFateNpc,
-    collectionsFateTurnIn   = CollectionsFateTurnIn,
-    doFate                  = DoFate,
-    waitForContinuation     = WaitForContinuation,
-    changingInstances       = ChangeInstance,
-    changeInstanceDismount  = ChangeInstanceDismount,
-    flyBackToAetheryte      = FlyBackToAetheryte,
-    extractMateria          = ExtractMateria,
-    repair                  = Repair,
-    exchangingVouchers      = ExecuteBicolorExchange,
-    processRetainers        = ProcessRetainers,
-    gcTurnIn                = GrandCompanyTurnIn,
-    summonChocobo           = SummonChocobo,
-    autoBuyGysahlGreens     = AutoBuyGysahlGreens
-}
-
 --- Fate state enum mapping (values confirmed from FFXIV SND)
 FateState = {
     None       = 0,  -- no state / unknown
@@ -430,7 +402,6 @@ SelfRepair                      = Config.Get("Self repair?")
 Retainers                       = Config.Get("Pause for retainers?")
 ShouldGrandCompanyTurnIn        = Config.Get("Dump extra gear at GC?")
 Echo                            = string.lower(Config.Get("Echo logs"))
-CompanionScriptMode             = Config.Get("Companion Script Mode")
 
 -- Plugin warnings
 if Retainers and not HasPlugin("AutoRetainer") then
@@ -486,15 +457,38 @@ if ShouldSummonChocobo and GetBuddyTimeRemaining() > 0 then
     yield('/cac "'..ChocoboStance..' stance"')
 end
 
+function WaitForContinuationClosure()
+    WaitForContinuation(MainClass)
+end
+
+CharacterState = {
+    ready                   = Ready,
+    dead                    = HandleDeath,
+    unexpectedCombat        = HandleUnexpectedCombat,
+    mounting                = MountState,
+    npcDismount             = NpcDismount,
+    MiddleOfFateDismount    = MiddleOfFateDismount,
+    moveToFate              = MoveToFate,
+    interactWithNpc         = InteractWithFateNpc,
+    collectionsFateTurnIn   = CollectionsFateTurnIn,
+    doFate                  = DoFate,
+    waitForContinuation     = WaitForContinuationClosure,
+    changingInstances       = ChangeInstance,
+    changeInstanceDismount  = ChangeInstanceDismount,
+    flyBackToAetheryte      = FlyBackToAetheryte,
+    extractMateria          = ExtractMateria,
+    repair                  = Repair,
+    exchangingVouchers      = ExecuteBicolorExchange,
+    processRetainers        = ProcessRetainers,
+    gcTurnIn                = GrandCompanyTurnIn,
+    summonChocobo           = SummonChocobo,
+    autoBuyGysahlGreens     = AutoBuyGysahlGreens
+}
+
 Dalamud.Log("[FATE] Starting fate farming script.")
 
 State = CharacterState.ready
 CurrentFate = nil
-
-if CompanionScriptMode then
-    yield("/echo The companion script will overwrite changing instances.")
-    EnableChangeInstance = false
-end
 
 while not StopScript do
     local nearestFate = Fates.GetNearestFate()
