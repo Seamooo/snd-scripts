@@ -1,4 +1,6 @@
 {
+    "diagnostics.ignoredFiles": "Disable",
+    "runtime.version": "Lua 5.3",
     "workspace.library": ["src/libmeta.lua"],
-    "runtime.version": "Lua 5.3"
+    "workspace.ignoreDir": ["build/"]
 }

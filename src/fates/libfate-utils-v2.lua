@@ -1,5 +1,51 @@
 require("libfate-data")
 
+---logs source line number
+---@return integer line number
+function __LINE__() return debug.getinfo(2, 'l').currentline end
+
+---@generic T: {[string]: any}
+---@param val T
+function DbgTable(val)
+    local rv = "{"
+    local firstElem = true
+    for k, v in pairs(val) do
+        if not firstElem then
+            rv = rv..", "
+        end
+        firstElem = false
+        rv = rv.."{\""..k.."\": "..tostring(v).."}"
+    end
+    rv = rv.."}"
+    return rv
+end
+
+---@generic T
+---@param val T[]
+---@return string
+function StringifyArray(val)
+    local rv = "{"
+    for idx, x in ipairs(val) do
+        if idx ~= 1 then
+            rv = rv..", "
+        end
+        rv = rv..tostring(x)
+    end
+    rv = rv.."}"
+    return rv
+end
+
+---@param name string
+---@returns boolean
+function HasPlugin(name)
+    for plugin in luanet.each(Svc.PluginInterface.InstalledPlugins) do
+        if plugin.InternalName == name and plugin.IsLoaded then
+            return true
+        end
+    end
+    return false
+end
+
 ---@enum ChocoboStance
 ChocoboStance = {
     Follow = 0,
@@ -96,6 +142,7 @@ function EorzeaTimeToUnixTime(eorzeaTime)
 end
 
 ---@param zoneId number
+---@returns IAetheryteEntry[]
 function GetAetherytesInZone(zoneId)
     local aetherytesInZone = {}
     for _, aetheryte in ipairs(Svc.AetheryteList) do
@@ -104,6 +151,16 @@ function GetAetherytesInZone(zoneId)
         end
     end
     return aetherytesInZone
+end
+
+---@param aetheryte IAetheryteEntry 
+---@return string
+function GetAetheryteName(aetheryte)
+    local name = aetheryte.AetheryteData.Value.PlaceName.Value.Name:GetText()
+    if name ~= nil then
+        return name
+    end
+    return ""
 end
 
 ---@param fate FateWrapper
@@ -129,9 +186,10 @@ end
 
 ---@param vec3 System_Numerics_Vector3
 ---@param teleportTimePenalty number
-function DistanceFromClosestAetheryteToPoint(vec3, teleportTimePenalty)
+---@param zone ZoneFateInfoExt
+function DistanceFromClosestAetheryteToPoint(vec3, teleportTimePenalty, zone)
     local rv = math.maxinteger
-    for _, aetheryte in ipairs(SelectedZone.aetheryteList) do
+    for _, aetheryte in ipairs(zone.aetheryteList) do
         local distanceAetheryteToFate = DistanceBetween(aetheryte.position, vec3)
         local comparisonDistance = distanceAetheryteToFate + teleportTimePenalty
         if comparisonDistance < rv then
@@ -143,12 +201,13 @@ end
 
 ---TODO(seamooo) this can be made much more precise
 ---@param vec3 System_Numerics_Vector3
+---@param zone ZoneFateInfoExt
 ---@return number
-function GetDistanceToPointWithAetheryteTravel(vec3)
+function GetDistanceToPointWithAetheryteTravel(vec3, zone)
     -- Get the direct flight distance (no aetheryte)
     local directFlightDistance = GetDistanceToPoint(vec3)
     -- Get the distance to the closest aetheryte, including teleportation penalty
-    local distanceToAetheryte = DistanceFromClosestAetheryteToPoint(vec3, 200)
+    local distanceToAetheryte = DistanceFromClosestAetheryteToPoint(vec3, 200, zone)
 
     -- Return the minimum distance, either via direct flight or via the closest aetheryte travel
     if distanceToAetheryte == nil then
@@ -265,27 +324,52 @@ function NewTeleportManager(timeout, logHook)
         local now = os.clock()
         if lastTeleportTimestamp == nil or now - lastTeleportTimestamp > 2 then
             -- below executes teleport and blocks until finished or timeout
-            yield("li tp "..aetheryteName)
-            yield("wait 1")
+            yield("/li tp "..aetheryteName)
+            yield("/wait 1")
             while Svc.Condition[CharacterCondition.casting] do
                 if os.clock() - now > timeoutConcrete then
                     logger("TeleportManager timeout reached while waiting for cast")
                     return false
                 end
+                yield("/wait 0.1")
             end
             local castFinishedTime = os.clock()
-            yield("wait 1")
+            yield("/wait 1")
             while Svc.Condition[CharacterCondition.betweenAreas] do
                 if os.clock() - castFinishedTime > timeoutConcrete then
                     logger("TeleportManager timeout reached while waiting for cast")
                     return false
                 end
+                yield("/wait 0.1")
             end
         end
         lastTeleportTimestamp = now
         return true
     end
     return rv
+end
+
+---@return number
+function GetTargetHitboxRadius()
+    if Svc.Targets.Target ~= nil then
+        return Svc.Targets.Target.HitboxRadius
+    end
+    return 0
+end
+
+---@return number
+function GetPlayerHitboxRadius()
+    if Svc.ClientState.LocalPlayer ~= nil then
+        return Svc.ClientState.LocalPlayer.HitboxRadius
+    end
+    return 0
+end
+
+---@param v System_Numerics_Vector2
+function Normalize(v)
+    local len = v:Length()
+    if len == 0 then return v end
+    return v / len
 end
 
 ---@class AetheryteTable
@@ -322,23 +406,26 @@ function GetCurrentZone()
             }
         }
     end
-    local rv = {table.unpack(zoneInfo), aetheryteList = {}};
+    local flying = zoneInfo.flying
+    ---@type ZoneFateInfoExt
+    local rv = {
+        zoneName = zoneInfo.zoneName,
+        zoneId = zoneInfo.zoneId,
+        fatesList = zoneInfo.fatesList,
+        flying = flying == nil or flying,
+        aetheryteList = {}
+    }
     local aetherytes = GetAetherytesInZone(zoneInfo.zoneId)
     for _, aetheryte in ipairs(aetherytes) do
-        local aetherytePos = Instances.Telepo.GetAetherytePosition(aetheryte.AetheryteId)
+        local aetherytePos = Instances.Telepo:GetAetherytePosition(aetheryte.AetheryteId)
         local aetheryteTable = {
-            aetheryteName = GetAetheryteName(aetheryte),
-            aetheryteId = aetheryte.AetheryteId,
+            name = GetAetheryteName(aetheryte),
+            id = aetheryte.AetheryteId,
             position = aetherytePos,
             aetheryteObj = aetheryte
         }
         table.insert(rv.aetheryteList, aetheryteTable)
     end
-
-    if rv.flying == nil then
-        rv.flying = true
-    end
-
     return rv
 end
 
@@ -435,9 +522,10 @@ function ClearTarget()
 end
 
 ---@param fateName string
+---@param zone ZoneFateInfoExt
 ---@return boolean
-function IsCollectionsFate(fateName)
-    for _, collectionsFate in ipairs(SelectedZone.fatesList.collectionsFates) do
+function IsCollectionsFate(fateName, zone)
+    for _, collectionsFate in ipairs(zone.fatesList.collectionsFates) do
         if collectionsFate.fateName == fateName then
             return true
         end
@@ -452,9 +540,10 @@ function IsBossFate(fate)
 end
 
 ---@param fateName string
+---@param zone ZoneFateInfoExt
 ---@return boolean
-function IsOtherNpcFate(fateName)
-    for _, otherNpcFate in ipairs(SelectedZone.fatesList.otherNpcFates) do
+function IsOtherNpcFate(fateName, zone)
+    for _, otherNpcFate in ipairs(zone.fatesList.otherNpcFates) do
         if otherNpcFate.fateName == fateName then
             return true
         end
@@ -463,12 +552,13 @@ function IsOtherNpcFate(fateName)
 end
 
 ---@param fateName string
+---@param zone ZoneFateInfoExt
 ---@return boolean
-function IsSpecialFate(fateName)
-    if SelectedZone.fatesList.specialFates == nil then
+function IsSpecialFate(fateName, zone)
+    if zone.fatesList.specialFates == nil then
         return false
     end
-    for _, specialFate in ipairs(SelectedZone.fatesList.specialFates) do
+    for _, specialFate in ipairs(zone.fatesList.specialFates) do
         if specialFate == fateName then
             return true
         end
@@ -477,21 +567,39 @@ function IsSpecialFate(fateName)
 end
 
 ---@param fateName string
+---@param zone ZoneFateInfoExt
 ---@return boolean
-function IsBlacklistedFate(fateName)
-    for _, blacklistedFate in ipairs(SelectedZone.fatesList.blacklistedFates) do
+function IsBlacklistedFate(fateName, zone)
+    for _, blacklistedFate in ipairs(zone.fatesList.blacklistedFates) do
         if blacklistedFate == fateName then
             return true
         end
     end
     if not JoinCollectionsFates then
-        for _, collectionsFate in ipairs(SelectedZone.fatesList.collectionsFates) do
+        for _, collectionsFate in ipairs(zone.fatesList.collectionsFates) do
             if collectionsFate.fateName == fateName then
                 return true
             end
         end
     end
     return false
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return string
+function GetFateNpcName(fateName, zone)
+    for i, fate in ipairs(zone.fatesList.otherNpcFates) do
+        if fate.fateName == fateName then
+            return fate.npcName
+        end
+    end
+    for i, fate in ipairs(zone.fatesList.collectionsFates) do
+        if fate.fateName == fateName then
+            return fate.npcName
+        end
+    end
+    return ""
 end
 
 --TODO(seamooo) below should be in an separate library for 

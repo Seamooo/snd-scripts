@@ -22,11 +22,23 @@ Vector3 = {}
 ---@class System_Numerics_Vector2
 ---@field X number
 ---@field Y number
+---@field Length fun(self): number
 ---@overload fun(x:number, y:number):System_Numerics_Vector2
 Vector2 = {}
 
 ---@class IEnumerable<T>: { [integer]: T}
 ---@field Count number
+
+---@class Lumina_Excel_Text_ReadOnly_ReadOnlySeString
+---@field GetText fun(self): string
+
+---@class RowRef<T>: {Value: T}
+
+---@class Lumina_Excel_Generator_Aetheryte
+---@field PlaceName RowRef<Lumina_Excel_Generator_Placename>
+
+---@class Lumina_Excel_Generator_Placename
+---@field Name Lumina_Excel_Text_ReadOnly_ReadOnlySeString
 
 ---@class AtkValueWrapper
 ---@field ValueString string
@@ -182,8 +194,8 @@ local MapWrapper = {}
 ---@class TelepoWrapper
 ---@field Teleport fun(aetheryte: any)
 ---@field Teleport fun(aetheryteId: number, subIndex: number)
----@field GetAetherytePosition fun(aetheryteId: number): System_Numerics_Vector3
----@field IsAetheryteUnlocked fun(aetheryteId: number): boolean 
+---@field GetAetherytePosition fun(self, aetheryteId: number): System_Numerics_Vector3
+---@field IsAetheryteUnlocked fun(self, aetheryteId: number): boolean 
 local TelepoWrapper = {}
 
 ---@class Instances
@@ -520,6 +532,7 @@ local ObjectTable = {}
 
 ---@class IAetheryteEntry
 ---@field TerritoryId number
+---@field AetheryteData RowRef<Lumina_Excel_Generator_Aetheryte>
 local IAetheryteEntry = {}
 
 ---@class IAetheryteList: { [number]: IAetheryteEntry? }
