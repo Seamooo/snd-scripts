@@ -254,19 +254,19 @@ FateState = {
 
 -- Settings Area
 -- Buffs
-Food                            = Config.Get("Food")
-Potion                          = Config.Get("Potion")
+-- Food                            = Config.Get("Food")
+-- Potion                          = Config.Get("Potion")
 
 -- Chocobo
-ResummonChocoboTimeLeft            = 3 * 60        --Resummons chocobo if there's less than this many seconds left on the timer, so it doesn't disappear on you in the middle of a fate.
-ChocoboStance                   = Config.Get("Chocobo Companion Stance") -- Options: Follow, Free, Defender, Healer, Attacker, None. Do not summon if None.
-ShouldSummonChocobo =  ChocoboStance == "Follow"
-                    or ChocoboStance == "Free"
-                    or ChocoboStance == "Defender"
-                    or ChocoboStance == "Healer"
-                    or ChocoboStance == "Attacker"
-ShouldAutoBuyGysahlGreens       = Config.Get("Buy Gysahl Greens?")
-MountToUse                      = "mount roulette"       --The mount youd like to use when flying between fates
+-- ResummonChocoboTimeLeft            = 3 * 60        --Resummons chocobo if there's less than this many seconds left on the timer, so it doesn't disappear on you in the middle of a fate.
+-- ChocoboStance                   = Config.Get("Chocobo Companion Stance") -- Options: Follow, Free, Defender, Healer, Attacker, None. Do not summon if None.
+-- ShouldSummonChocobo =  ChocoboStance == "Follow"
+--                     or ChocoboStance == "Free"
+--                     or ChocoboStance == "Defender"
+--                     or ChocoboStance == "Healer"
+--                     or ChocoboStance == "Attacker"
+-- ShouldAutoBuyGysahlGreens       = Config.Get("Buy Gysahl Greens?")
+-- MountToUse                      = "mount roulette"       --The mount youd like to use when flying between fates
 
 -- Retainer
 

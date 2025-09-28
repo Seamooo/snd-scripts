@@ -38,8 +38,8 @@ function GetTargetName()
     end
 end
 
+---@return boolean
 function AttemptToTargetClosestFateEnemy()
-    --Svc.Targets.Target = Svc.Objects.OrderBy(DistanceToObject).FirstOrDefault(o => o.IsTargetable && o.IsHostile() && !o.IsDead && (distance == 0 || DistanceToObject(o) <= distance) && o.Struct()->FateId > 0);
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
     for i=0, Svc.Objects.Length-1 do
@@ -56,7 +56,9 @@ function AttemptToTargetClosestFateEnemy()
     end
     if closestTarget ~= nil then
         Svc.Targets.Target = closestTarget
+        return true
     end
+    return false
 end
 
 function Normalize(v)
@@ -158,6 +160,7 @@ function GetFateNpcName(fateName)
     end
 end
 
+---@param fate FateWrapper
 function IsFateActive(fate)
     if fate.State == nil then
         return false
@@ -174,51 +177,6 @@ function InActiveFate()
         end
     end
     return false
-end
-
-function SelectNextZone()
-    local nextZone = nil
-    local nextZoneId = Svc.ClientState.TerritoryType
-
-    for i, zone in ipairs(FatesData) do
-        if nextZoneId == zone.zoneId then
-            nextZone = zone
-        end
-    end
-    if nextZone == nil then
-        yield("/echo [FATE] Current zone is only partially supported. No data on npc fates.")
-        nextZone = {
-            zoneName = "",
-            zoneId = nextZoneId,
-            fatesList= {
-                collectionsFates= {},
-                otherNpcFates= {},
-                bossFates= {},
-                blacklistedFates= {},
-                fatesWithContinuations = {}
-            }
-        }
-    end
-
-    nextZone.zoneName = nextZone.zoneName
-    nextZone.aetheryteList = {}
-    local aetherytes = GetAetherytesInZone(nextZone.zoneId)
-    for _, aetheryte in ipairs(aetherytes) do
-        local aetherytePos = Instances.Telepo.GetAetherytePosition(aetheryte.AetheryteId)
-        local aetheryteTable = {
-            aetheryteName = GetAetheryteName(aetheryte),
-            aetheryteId = aetheryte.AetheryteId,
-            position = aetherytePos,
-            aetheryteObj = aetheryte
-        }
-        table.insert(nextZone.aetheryteList, aetheryteTable)
-    end
-
-    if nextZone.flying == nil then
-        nextZone.flying = true
-    end
-
-    return nextZone
 end
 
 --[[
@@ -338,7 +296,6 @@ function SelectNextFate()
         else
             Dalamud.Log("[FATE] FATE coords were zeroed out")
         end
-
     end
 
     Dalamud.Log("[FATE] Finished considering all fates")

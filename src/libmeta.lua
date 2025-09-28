@@ -47,7 +47,7 @@ local NodeWrapper = {}
 --- TODO(seamooo) investigate below type
 local AddonWrapper = {}
 
----@param ... string
+---@param ... number 
 ---@return NodeWrapper
 function AddonWrapper.GetNode(...) end
 
@@ -91,7 +91,7 @@ Entity = {}
 ---@field Radius number
 ---technically a fate rule field here but omitted until enums are more concrete
 ---@field Level number
----@field MaxLevel number?
+---@field MaxLevel number
 ---@field FATEChain number
 ---@field EventItem number
 ---@field IconId number
@@ -372,13 +372,50 @@ local IExposedPlugin = {}
 ---@field InstalledPlugins IExposedPlugin[]
 local IDalamudPluginInterface = {}
 
----@class ICondition
----TODO(seamooo) figure out how to allow a class to be indexed like a table
+---@class ICondition: { [number]: boolean }
 local ICondition = {}
 
 ---@class SeString
 ---@field TextValue string
 local SeString = {}
+
+---@enum ObjectKind
+local ObjectKind = {
+    None = 0,
+    Player = 1,
+    BattleNpc = 2,
+    EventNpc = 3,
+    Treasure = 4,
+    Aetheryte = 5,
+    GatheringPoint = 6,
+    EventObj = 7,
+    MountType = 8,
+    Companion = 9,
+    Retainer = 10,
+    Area = 11,
+    Housing = 12,
+    Cutscene = 13,
+    CardStand = 14,
+    Ornament = 15
+}
+
+---@class ObjectKindEnum
+---@field None ObjectKind.None
+---@field Player ObjectKind.Player
+---@field BattleNpc ObjectKind.BattleNpc
+---@field EventNpc ObjectKind.EventNpc
+---@field Treasure ObjectKind.Treasure
+---@field Aetheryte ObjectKind.Aetheryte
+---@field GatheringPoint ObjectKind.GatheringPoint
+---@field EventObj ObjectKind.EventObj
+---@field MountType ObjectKind.MountType
+---@field Companion ObjectKind.Companion
+---@field Retainer ObjectKind.Retainer
+---@field Area ObjectKind.Area
+---@field Housing ObjectKind.Housing
+---@field Cutscene ObjectKind.Cutscene
+---@field CardStand ObjectKind.CardStand
+---@field Ornament ObjectKind.Ornament
 
 ---@class IGameObject
 ---@field Name SeString
@@ -387,10 +424,63 @@ local SeString = {}
 ---@field HitboxRadius number
 ---@field IsTargetable boolean
 ---@field IsDead boolean
+---@field ObjectKind ObjectKind
 local IGameObject = {}
 
----@returns boolean
+---@return boolean
 function IGameObject:IsHostile() end
+
+---NOTE This is for typing only, using the literal
+---integer values will result in unexpected behaviour
+---@enum NameplateKind
+local NameplateKind = {
+    PlayerCharacterSelf = 1,
+    InDutyPartyMember = 2,
+    InDutyNpcNotInParty = 3,
+    EnemyMalestromPvPPC = 4,
+    EnemyAdderPvPPC = 5,
+    EnemyFlamesPvPPC = 6,
+    HostileNotEngaged = 7,
+    Dead = 8,
+    HostileEngagedSelfDamaged = 9,
+    HostileEngagedOther = 10,
+    HostileEngagedSelfUndamaged = 11,
+    FriendlyBattleNPC = 12,
+    PlayerCharacterChocobo = 15,
+    OtherPlayerCharacterChocobo = 17,
+    OtherAlliancePlayerCharacter = 20,
+    AnyPlayerCharacterDead = 21,
+    OutOfDutyPartyPC = 22,
+    InDutyPCInPartyTank = 27,
+    InDutyPcInPartyHealer = 28,
+    InDutyPCInPartyDPS = 29
+}
+
+---Used for typing the loaded enum type
+---@class NameplateKindEnum
+---@field PlayerCharacterSelf NameplateKind.PlayerCharacterSelf
+---@field InDutyPartyMember NameplateKind.InDutyPartyMember
+---@field InDutyNpcNotInParty NameplateKind.InDutyNpcNotInParty
+---@field EnemyMalestromPvPPC NameplateKind.EnemyMalestromPvPPC
+---@field EnemyAdderPvPPC NameplateKind.EnemyAdderPvPPC
+---@field EnemyFlamesPvPPC NameplateKind.EnemyFlamesPvPPC
+---@field HostileNotEngaged NameplateKind.HostileNotEngaged
+---@field Dead NameplateKind.Dead
+---@field HostileEngagedSelfDamaged NameplateKind.HostileEngagedSelfDamaged
+---@field HostileEngagedOther NameplateKind.HostileEngagedOther
+---@field HostileEngagedSelfUndamaged NameplateKind.HostileEngagedSelfUndamaged
+---@field FriendlyBattleNPC NameplateKind.FriendlyBattleNPC
+---@field PlayerCharacterChocobo NameplateKind.PlayerCharacterChocobo
+---@field OtherPlayerCharacterChocobo NameplateKind.OtherPlayerCharacterChocobo
+---@field OtherAlliancePlayerCharacter NameplateKind.OtherAlliancePlayerCharacter
+---@field AnyPlayerCharacterDead NameplateKind.AnyPlayerCharacterDead
+---@field OutOfDutyPartyPC NameplateKind.OutOfDutyPartyPC
+---@field InDutyPCInPartyTank NameplateKind.InDutyPCInPartyTank
+---@field InDutyPcInPartyHealer NameplateKind.InDutyPcInPartyHealer
+---@field InDutyPCInPartyDPS NameplateKind.InDutyPCInPartyDPS
+
+---@return NameplateKind
+function IGameObject:GetNameplateKind() end
 
 ---@class ITargetManager
 ---@field Target IGameObject?
@@ -455,5 +545,5 @@ luanet = {}
 -- TODO(seamooo) investigate below
 ---@generic T
 ---@param enumerable IEnumerable<T>
----@returns T[]
+---@return T[]
 function luanet.each(enumerable) end

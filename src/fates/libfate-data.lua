@@ -21,40 +21,41 @@ CharacterCondition = {
     flying=77
 }
 
-ClassList =
-{
-    gla = { classId=1, className="Gladiator", isMelee=true, isTank=true },
-    pgl = { classId=2, className="Pugilist", isMelee=true, isTank=false },
-    mrd = { classId=3, className="Marauder", isMelee=true, isTank=true },
-    lnc = { classId=4, className="Lancer", isMelee=true, isTank=false },
-    arc = { classId=5, className="Archer", isMelee=false, isTank=false },
-    cnj = { classId=6, className="Conjurer", isMelee=false, isTank=false },
-    thm = { classId=7, className="Thaumaturge", isMelee=false, isTank=false },
-    pld = { classId=19, className="Paladin", isMelee=true, isTank=true },
-    mnk = { classId=20, className="Monk", isMelee=true, isTank=false },
-    war = { classId=21, className="Warrior", isMelee=true, isTank=true },
-    drg = { classId=22, className="Dragoon", isMelee=true, isTank=false },
-    brd = { classId=23, className="Bard", isMelee=false, isTank=false },
-    whm = { classId=24, className="White Mage", isMelee=false, isTank=false },
-    blm = { classId=25, className="Black Mage", isMelee=false, isTank=false },
-    acn = { classId=26, className="Arcanist", isMelee=false, isTank=false },
-    smn = { classId=27, className="Summoner", isMelee=false, isTank=false },
-    sch = { classId=28, className="Scholar", isMelee=false, isTank=false },
-    rog = { classId=29, className="Rogue", isMelee=false, isTank=false },
-    nin = { classId=30, className="Ninja", isMelee=true, isTank=false },
-    mch = { classId=31, className="Machinist", isMelee=false, isTank=false},
-    drk = { classId=32, className="Dark Knight", isMelee=true, isTank=true },
-    ast = { classId=33, className="Astrologian", isMelee=false, isTank=false },
-    sam = { classId=34, className="Samurai", isMelee=true, isTank=false },
-    rdm = { classId=35, className="Red Mage", isMelee=false, isTank=false },
-    blu = { classId=36, className="Blue Mage", isMelee=false, isTank=false },
-    gnb = { classId=37, className="Gunbreaker", isMelee=true, isTank=true },
-    dnc = { classId=38, className="Dancer", isMelee=false, isTank=false },
-    rpr = { classId=39, className="Reaper", isMelee=true, isTank=false },
-    sge = { classId=40, className="Sage", isMelee=false, isTank=false },
-    vpr = { classId=41, className="Viper", isMelee=true, isTank=false },
-    pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
-}
+-- TODO(seamooo) investigate if below is dead code
+-- ClassList =
+-- {
+--     gla = { classId=1, className="Gladiator", isMelee=true, isTank=true },
+--     pgl = { classId=2, className="Pugilist", isMelee=true, isTank=false },
+--     mrd = { classId=3, className="Marauder", isMelee=true, isTank=true },
+--     lnc = { classId=4, className="Lancer", isMelee=true, isTank=false },
+--     arc = { classId=5, className="Archer", isMelee=false, isTank=false },
+--     cnj = { classId=6, className="Conjurer", isMelee=false, isTank=false },
+--     thm = { classId=7, className="Thaumaturge", isMelee=false, isTank=false },
+--     pld = { classId=19, className="Paladin", isMelee=true, isTank=true },
+--     mnk = { classId=20, className="Monk", isMelee=true, isTank=false },
+--     war = { classId=21, className="Warrior", isMelee=true, isTank=true },
+--     drg = { classId=22, className="Dragoon", isMelee=true, isTank=false },
+--     brd = { classId=23, className="Bard", isMelee=false, isTank=false },
+--     whm = { classId=24, className="White Mage", isMelee=false, isTank=false },
+--     blm = { classId=25, className="Black Mage", isMelee=false, isTank=false },
+--     acn = { classId=26, className="Arcanist", isMelee=false, isTank=false },
+--     smn = { classId=27, className="Summoner", isMelee=false, isTank=false },
+--     sch = { classId=28, className="Scholar", isMelee=false, isTank=false },
+--     rog = { classId=29, className="Rogue", isMelee=false, isTank=false },
+--     nin = { classId=30, className="Ninja", isMelee=true, isTank=false },
+--     mch = { classId=31, className="Machinist", isMelee=false, isTank=false},
+--     drk = { classId=32, className="Dark Knight", isMelee=true, isTank=true },
+--     ast = { classId=33, className="Astrologian", isMelee=false, isTank=false },
+--     sam = { classId=34, className="Samurai", isMelee=true, isTank=false },
+--     rdm = { classId=35, className="Red Mage", isMelee=false, isTank=false },
+--     blu = { classId=36, className="Blue Mage", isMelee=false, isTank=false },
+--     gnb = { classId=37, className="Gunbreaker", isMelee=true, isTank=true },
+--     dnc = { classId=38, className="Dancer", isMelee=false, isTank=false },
+--     rpr = { classId=39, className="Reaper", isMelee=true, isTank=false },
+--     sge = { classId=40, className="Sage", isMelee=false, isTank=false },
+--     vpr = { classId=41, className="Viper", isMelee=true, isTank=false },
+--     pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
+-- }
 
 BicolorExchangeData =
 {
@@ -132,6 +133,28 @@ BicolorExchangeData =
     }
 }
 
+---@class FateInfo
+---@field fateName string
+---@field npcName string
+
+---@class ContinuationFateInfo
+---@field fateName string
+---@field continuationIsBoss boolean
+
+---@class FatesList
+---@field collectionsFates FateInfo[]
+---@field otherNpcFates FateInfo[]
+---@field fatesWithContinuations (ContinuationFateInfo|string)[]
+---@field specialFates string[]?
+---@field blacklistedFates string[]
+
+---@class ZoneFateInfo
+---@field zoneName string
+---@field zoneId number
+---@field fatesList FatesList
+---@field flying boolean?
+
+---@type ZoneFateInfo[]
 FatesData = {
     {
         zoneName = "Middle La Noscea",

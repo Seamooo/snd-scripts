@@ -298,19 +298,19 @@ FateState = {
 
 -- Settings Area
 -- Buffs
-Food                            = Config.Get("Food")
-Potion                          = Config.Get("Potion")
+-- Food                            = Config.Get("Food")
+-- Potion                          = Config.Get("Potion")
 
 -- Chocobo
-ResummonChocoboTimeLeft            = 3 * 60        --Resummons chocobo if there's less than this many seconds left on the timer, so it doesn't disappear on you in the middle of a fate.
-ChocoboStance                   = Config.Get("Chocobo Companion Stance") -- Options: Follow, Free, Defender, Healer, Attacker, None. Do not summon if None.
-ShouldSummonChocobo =  ChocoboStance == "Follow"
-                    or ChocoboStance == "Free"
-                    or ChocoboStance == "Defender"
-                    or ChocoboStance == "Healer"
-                    or ChocoboStance == "Attacker"
-ShouldAutoBuyGysahlGreens       = Config.Get("Buy Gysahl Greens?")
-MountToUse                      = "mount roulette"       --The mount youd like to use when flying between fates
+-- ResummonChocoboTimeLeft            = 3 * 60        --Resummons chocobo if there's less than this many seconds left on the timer, so it doesn't disappear on you in the middle of a fate.
+-- ChocoboStance                   = Config.Get("Chocobo Companion Stance") -- Options: Follow, Free, Defender, Healer, Attacker, None. Do not summon if None.
+-- ShouldSummonChocobo =  ChocoboStance == "Follow"
+--                     or ChocoboStance == "Free"
+--                     or ChocoboStance == "Defender"
+--                     or ChocoboStance == "Healer"
+--                     or ChocoboStance == "Attacker"
+-- ShouldAutoBuyGysahlGreens       = Config.Get("Buy Gysahl Greens?")
+-- MountToUse                      = "mount roulette"       --The mount youd like to use when flying between fates
 
 -- Retainer
 
@@ -644,8 +644,8 @@ function GetTargetName()
     end
 end
 
+---@return boolean
 function AttemptToTargetClosestFateEnemy()
-    --Svc.Targets.Target = Svc.Objects.OrderBy(DistanceToObject).FirstOrDefault(o => o.IsTargetable && o.IsHostile() && !o.IsDead && (distance == 0 || DistanceToObject(o) <= distance) && o.Struct()->FateId > 0);
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
     for i=0, Svc.Objects.Length-1 do
@@ -662,7 +662,9 @@ function AttemptToTargetClosestFateEnemy()
     end
     if closestTarget ~= nil then
         Svc.Targets.Target = closestTarget
+        return true
     end
+    return false
 end
 
 function Normalize(v)
@@ -764,6 +766,7 @@ function GetFateNpcName(fateName)
     end
 end
 
+---@param fate FateWrapper
 function IsFateActive(fate)
     if fate.State == nil then
         return false
@@ -780,51 +783,6 @@ function InActiveFate()
         end
     end
     return false
-end
-
-function SelectNextZone()
-    local nextZone = nil
-    local nextZoneId = Svc.ClientState.TerritoryType
-
-    for i, zone in ipairs(FatesData) do
-        if nextZoneId == zone.zoneId then
-            nextZone = zone
-        end
-    end
-    if nextZone == nil then
-        yield("/echo [FATE] Current zone is only partially supported. No data on npc fates.")
-        nextZone = {
-            zoneName = "",
-            zoneId = nextZoneId,
-            fatesList= {
-                collectionsFates= {},
-                otherNpcFates= {},
-                bossFates= {},
-                blacklistedFates= {},
-                fatesWithContinuations = {}
-            }
-        }
-    end
-
-    nextZone.zoneName = nextZone.zoneName
-    nextZone.aetheryteList = {}
-    local aetherytes = GetAetherytesInZone(nextZone.zoneId)
-    for _, aetheryte in ipairs(aetherytes) do
-        local aetherytePos = Instances.Telepo.GetAetherytePosition(aetheryte.AetheryteId)
-        local aetheryteTable = {
-            aetheryteName = GetAetheryteName(aetheryte),
-            aetheryteId = aetheryte.AetheryteId,
-            position = aetherytePos,
-            aetheryteObj = aetheryte
-        }
-        table.insert(nextZone.aetheryteList, aetheryteTable)
-    end
-
-    if nextZone.flying == nil then
-        nextZone.flying = true
-    end
-
-    return nextZone
 end
 
 --[[
@@ -944,7 +902,6 @@ function SelectNextFate()
         else
             Dalamud.Log("[FATE] FATE coords were zeroed out")
         end
-
     end
 
     Dalamud.Log("[FATE] Finished considering all fates")
@@ -2735,40 +2692,41 @@ CharacterCondition = {
     flying=77
 }
 
-ClassList =
-{
-    gla = { classId=1, className="Gladiator", isMelee=true, isTank=true },
-    pgl = { classId=2, className="Pugilist", isMelee=true, isTank=false },
-    mrd = { classId=3, className="Marauder", isMelee=true, isTank=true },
-    lnc = { classId=4, className="Lancer", isMelee=true, isTank=false },
-    arc = { classId=5, className="Archer", isMelee=false, isTank=false },
-    cnj = { classId=6, className="Conjurer", isMelee=false, isTank=false },
-    thm = { classId=7, className="Thaumaturge", isMelee=false, isTank=false },
-    pld = { classId=19, className="Paladin", isMelee=true, isTank=true },
-    mnk = { classId=20, className="Monk", isMelee=true, isTank=false },
-    war = { classId=21, className="Warrior", isMelee=true, isTank=true },
-    drg = { classId=22, className="Dragoon", isMelee=true, isTank=false },
-    brd = { classId=23, className="Bard", isMelee=false, isTank=false },
-    whm = { classId=24, className="White Mage", isMelee=false, isTank=false },
-    blm = { classId=25, className="Black Mage", isMelee=false, isTank=false },
-    acn = { classId=26, className="Arcanist", isMelee=false, isTank=false },
-    smn = { classId=27, className="Summoner", isMelee=false, isTank=false },
-    sch = { classId=28, className="Scholar", isMelee=false, isTank=false },
-    rog = { classId=29, className="Rogue", isMelee=false, isTank=false },
-    nin = { classId=30, className="Ninja", isMelee=true, isTank=false },
-    mch = { classId=31, className="Machinist", isMelee=false, isTank=false},
-    drk = { classId=32, className="Dark Knight", isMelee=true, isTank=true },
-    ast = { classId=33, className="Astrologian", isMelee=false, isTank=false },
-    sam = { classId=34, className="Samurai", isMelee=true, isTank=false },
-    rdm = { classId=35, className="Red Mage", isMelee=false, isTank=false },
-    blu = { classId=36, className="Blue Mage", isMelee=false, isTank=false },
-    gnb = { classId=37, className="Gunbreaker", isMelee=true, isTank=true },
-    dnc = { classId=38, className="Dancer", isMelee=false, isTank=false },
-    rpr = { classId=39, className="Reaper", isMelee=true, isTank=false },
-    sge = { classId=40, className="Sage", isMelee=false, isTank=false },
-    vpr = { classId=41, className="Viper", isMelee=true, isTank=false },
-    pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
-}
+-- TODO(seamooo) investigate if below is dead code
+-- ClassList =
+-- {
+--     gla = { classId=1, className="Gladiator", isMelee=true, isTank=true },
+--     pgl = { classId=2, className="Pugilist", isMelee=true, isTank=false },
+--     mrd = { classId=3, className="Marauder", isMelee=true, isTank=true },
+--     lnc = { classId=4, className="Lancer", isMelee=true, isTank=false },
+--     arc = { classId=5, className="Archer", isMelee=false, isTank=false },
+--     cnj = { classId=6, className="Conjurer", isMelee=false, isTank=false },
+--     thm = { classId=7, className="Thaumaturge", isMelee=false, isTank=false },
+--     pld = { classId=19, className="Paladin", isMelee=true, isTank=true },
+--     mnk = { classId=20, className="Monk", isMelee=true, isTank=false },
+--     war = { classId=21, className="Warrior", isMelee=true, isTank=true },
+--     drg = { classId=22, className="Dragoon", isMelee=true, isTank=false },
+--     brd = { classId=23, className="Bard", isMelee=false, isTank=false },
+--     whm = { classId=24, className="White Mage", isMelee=false, isTank=false },
+--     blm = { classId=25, className="Black Mage", isMelee=false, isTank=false },
+--     acn = { classId=26, className="Arcanist", isMelee=false, isTank=false },
+--     smn = { classId=27, className="Summoner", isMelee=false, isTank=false },
+--     sch = { classId=28, className="Scholar", isMelee=false, isTank=false },
+--     rog = { classId=29, className="Rogue", isMelee=false, isTank=false },
+--     nin = { classId=30, className="Ninja", isMelee=true, isTank=false },
+--     mch = { classId=31, className="Machinist", isMelee=false, isTank=false},
+--     drk = { classId=32, className="Dark Knight", isMelee=true, isTank=true },
+--     ast = { classId=33, className="Astrologian", isMelee=false, isTank=false },
+--     sam = { classId=34, className="Samurai", isMelee=true, isTank=false },
+--     rdm = { classId=35, className="Red Mage", isMelee=false, isTank=false },
+--     blu = { classId=36, className="Blue Mage", isMelee=false, isTank=false },
+--     gnb = { classId=37, className="Gunbreaker", isMelee=true, isTank=true },
+--     dnc = { classId=38, className="Dancer", isMelee=false, isTank=false },
+--     rpr = { classId=39, className="Reaper", isMelee=true, isTank=false },
+--     sge = { classId=40, className="Sage", isMelee=false, isTank=false },
+--     vpr = { classId=41, className="Viper", isMelee=true, isTank=false },
+--     pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
+-- }
 
 BicolorExchangeData =
 {
@@ -2846,6 +2804,28 @@ BicolorExchangeData =
     }
 }
 
+---@class FateInfo
+---@field fateName string
+---@field npcName string
+
+---@class ContinuationFateInfo
+---@field fateName string
+---@field continuationIsBoss boolean
+
+---@class FatesList
+---@field collectionsFates FateInfo[]
+---@field otherNpcFates FateInfo[]
+---@field fatesWithContinuations (ContinuationFateInfo|string)[]
+---@field specialFates string[]?
+---@field blacklistedFates string[]
+
+---@class ZoneFateInfo
+---@field zoneName string
+---@field zoneId number
+---@field fatesList FatesList
+---@field flying boolean?
+
+---@type ZoneFateInfo[]
 FatesData = {
     {
         zoneName = "Middle La Noscea",
