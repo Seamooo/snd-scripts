@@ -738,7 +738,7 @@ function IsSpecialFate(fateName)
 end
 
 function IsBlacklistedFate(fateName)
-    for i, blacklistedFate in ipairs(SelectedZone.fatesList.blacklistedFates) do
+    for _, blacklistedFate in ipairs(SelectedZone.fatesList.blacklistedFates) do
         if blacklistedFate == fateName then
             return true
         end

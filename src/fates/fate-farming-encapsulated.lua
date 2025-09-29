@@ -194,8 +194,6 @@ local function main()
     local automator = FateAutomation.new(config)
     repeat
         automator:run()
-        -- XXX(seamooo) remove this, it's just there for testing
-        yield("/wait 0.1")
     until false
 end
 

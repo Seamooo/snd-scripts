@@ -716,25 +716,27 @@ function FateAutomation:middleOfFateDismount()
             if Svc.Targets.Target == nil then
                 --TODO(seamooo) potentially debounce this
                 if not AttemptToTargetClosestFateEnemy() then
+                    -- need to move closer to the fate
+                    self:updateState(AutomationState.MoveToFate)
                     return
                 end
             end
-        if GetDistanceToTarget() > (MAX_DISTANCE + GetTargetHitboxRadius() + 5) then
-            if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
-                if Svc.Condition[CharacterCondition.flying] then
-                    yield("/vnav flytarget")
+            if GetDistanceToTarget() > (MAX_DISTANCE + GetTargetHitboxRadius() + 5) then
+                if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
+                    if Svc.Condition[CharacterCondition.flying] then
+                        yield("/vnav flytarget")
+                    else
+                        yield("/vnav movetarget")
+                    end
+                end
+            else
+                if Svc.Condition[CharacterCondition.mounted] then
+                    tryDismountInst()
                 else
-                    yield("/vnav movetarget")
+                    yield("/vnav stop")
+                    self:updateState(AutomationState.DoFate)
                 end
             end
-        else
-            if Svc.Condition[CharacterCondition.mounted] then
-                tryDismountInst()
-            else
-                yield("/vnav stop")
-                self:updateState(AutomationState.DoFate)
-            end
-        end
         end,
         Dispose = function() end
     }
@@ -778,6 +780,16 @@ local function cmpBoolean(a,b)
     return Cmp.Eq
 end
 
+---transforms progress to a comparable
+---@param progress number
+---@return number
+local function progressTransform(progress)
+    if progress >= 100 then
+        return -1
+    end
+    return progress
+end
+
 ---although this doesn't require "self", keeping it as a method
 ---in case it becomes configurable
 ---@private
@@ -787,7 +799,7 @@ end
 function FateAutomation:fateCmp(fateA, fateB)
     local comparisons = {
         [FateCriteria.Progress] = function()
-            return cmpNumber(fateA.fateObject.Progress, fateB.fateObject.Progress)
+            return cmpNumber(progressTransform(fateA.fateObject.Progress), progressTransform(fateB.fateObject.Progress))
         end,
         [FateCriteria.Bonus] = function()
             return cmpBoolean(fateA.isBonusFate, fateB.isBonusFate)
@@ -833,7 +845,7 @@ function FateAutomation:selectNextFate()
         elseif tpFate.isBlacklistedFate then
             self:logDebug("found blacklisted fate ("..tpFate.fateName.."). Skipping..")
         elseif tpFate:isBossFate() and (
-                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate) and
+                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate) or
                 (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
             ) then
             self:logDebug("Boss fate is not at required completion percent ("..tpFate.fateName.."). Skipping..")
@@ -1064,26 +1076,29 @@ end
 ---@private
 ---@return StateFunction
 function FateAutomation:collectionsFateTurnIn()
+    -- momoise currentFate, it will be the same
+    -- throughout state lifetime
+    local currentFate = self.currentFate
     return {
         Exec = function()
             AcceptNPCFateOrRejectOtherYesno()
-            if self.currentFate == nil or not IsFateActive(self.currentFate.fateObject) then
+            if currentFate == nil or not IsFateActive(currentFate.fateObject) then
                 self:updateState(AutomationState.Ready)
                 return
             end
-            local collectionsFateCtx = self.currentFate.collectionsFateCtx
+            local collectionsFateCtx = currentFate.collectionsFateCtx
             if collectionsFateCtx == nil then
                 self:log("internal error: reached collectionsFateTurnIn without a collectionsFateCtx")
                 self:updateState(AutomationState.Ready)
                 return
             end
-            if (Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
+            if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
                 self:turnOffCombatMods()
-                yield("/target "..CurrentFate.npcName)
+                yield("/target "..currentFate.npcName)
                 -- potential wait here for stability
-                if (Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
+                if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
                     if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
-                        IPC.vnavmesh.PathfindAndMoveTo(self.currentFate.position, false)
+                        IPC.vnavmesh.PathfindAndMoveTo(currentFate.position, false)
                     end
                 else
                     yield("/vnav stop")
@@ -1096,13 +1111,13 @@ function FateAutomation:collectionsFateTurnIn()
                     yield("/vnav movetarget")
                 end
             else
-                if Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= 7 then
+                if Inventory.GetItemCount(currentFate.fateObject.EventItem) >= 7 then
                     collectionsFateCtx.haveMaxCredit = true
                 end
                 yield("/vnav stop")
                 yield("/interact")
-                --- potential wait here for stability
-                if CurrentFate.fateObject.Progress < 100 or not collectionsFateCtx.haveMaxCredit then
+                yield("/wait 0.25")
+                if currentFate.fateObject.Progress < 100 or not collectionsFateCtx.haveMaxCredit then
                     self:continueDoFate()
                     return
                 end
@@ -1122,6 +1137,7 @@ local FateTargetEntity = {
     Boss = 4,
     ForlornMaiden = 5,
     Forlorn = 6,
+    ClosestFateMob = 7,
 }
 
 ---@private
@@ -1164,6 +1180,8 @@ function FateAutomation:getTargetPriority()
         local appendVals = {
             FateTargetEntity.Battle,
             FateTargetEntity.Gatherables,
+            FateTargetEntity.IdleFateMob,
+            FateTargetEntity.ClosestFateMob,
         }
         for _, x in ipairs(appendVals) do
             table.insert(rv, x)
@@ -1172,6 +1190,7 @@ function FateAutomation:getTargetPriority()
         local appendVals = {
             FateTargetEntity.IdleFateMob,
             FateTargetEntity.Battle,
+            FateTargetEntity.ClosestFateMob,
         }
         for _, x in ipairs(appendVals) do
             table.insert(rv, x)
@@ -1180,6 +1199,7 @@ function FateAutomation:getTargetPriority()
         local appendVals = {
             FateTargetEntity.Battle,
             FateTargetEntity.IdleFateMob,
+            FateTargetEntity.ClosestFateMob,
         }
         for _, x in ipairs(appendVals) do
             table.insert(rv, x)
@@ -1224,6 +1244,7 @@ function FateAutomation:doFate()
         [FateTargetEntity.Boss] = function() return TargetFateBoss(self.currentFate.fateObject) end,
         [FateTargetEntity.ForlornMaiden] = TargetForlornMaiden,
         [FateTargetEntity.Forlorn] = TargetForlorn,
+        [FateTargetEntity.ClosestFateMob] = function() return TargetClosestFateMob(self.currentFate.fateObject) end,
     }
     return {
         Exec = function()
@@ -1233,19 +1254,16 @@ function FateAutomation:doFate()
             end
             local currentJob = Player.Job
             if self.currentFate:isBossFate() and self.Config.BossFatesJob ~= nil and currentJob.Id ~= self.Config.BossFatesJob.Id then
-                self:logDebug("branch 1")
                 self:turnOffCombatMods()
                 yield("/gs change "..self.Config.BossFatesJob.Name)
                 return
             elseif not self.currentFate:isBossFate() and self.Config.MainJob.Id ~= currentJob.Id then
-                self:logDebug("branch 2")
                 self:turnOffCombatMods()
                 yield("/gs change "..self.Config.MainJob.Name)
                 return
                 -- XXX(seamooo) known that below comparison had failures previously
                 -- uncertain if due to self.currentFate being nil or self.currentFate.fateObject.MaxLevel being nil
             elseif InActiveFate() and (self.currentFate.fateObject.MaxLevel < Player.Job.Level) and not Player.IsLevelSynced then
-                self:logDebug("branch 3")
                 yield("/lsync")
                 -- potential wait here for stability
             elseif IsFateActive(self.currentFate.fateObject)
@@ -1257,13 +1275,11 @@ function FateAutomation:doFate()
                 and not (
                     IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()
                 ) then -- got pushed out of fate. go back
-                self:logDebug("branch 4")
                 yield("/vnav stop")
                 self:logDebug("pushed out of fate -> pathing back")
                 IPC.vnavmesh.PathfindAndMoveTo(self.currentFate.position, Player.CanFly and not disableFly)
                 return
             elseif not IsFateActive(self.currentFate.fateObject) or self.currentFate.fateObject.Progress == 100 then
-                self:logDebug("branch 5")
                 yield("/vnav stop")
                 ClearTarget()
                 if self.currentFate.hasContinuation then
@@ -1273,11 +1289,9 @@ function FateAutomation:doFate()
                     self:updateState(AutomationState.Ready)
                 end
             elseif Svc.Condition[CharacterCondition.mounted] then
-                self:logDebug("branch 6")
                 self:updateState(AutomationState.MiddleOfFateDismount)
                 return
             elseif self.currentFate.collectionsFateCtx ~= nil then
-                self:logDebug("branch 7")
                 if (
                     self.currentFate.fateObject.EventItem ~= 0
                     and Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= FULL_CREDIT_MIN_ITEMS
@@ -1317,10 +1331,11 @@ function FateAutomation:doFate()
                 return
             end
             if targetTy == FateTargetEntity.Gatherables then
+                self:logDebug("in gatherables")
                 if Svc.Condition[CharacterCondition.casting] then
                     -- finish interact
                     return
-                elseif GetDistanceToPoint(target.Position) > 5 then
+                elseif GetDistanceToPoint(target.Position) > MAX_DISTANCE then
                     if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
                         IPC.vnavmesh.PathfindAndMoveTo(target.Position, false)
                     end
@@ -1793,6 +1808,16 @@ function FateAutomation:updateState(newState)
     self.currentState = initFn(self)
 end
 
+---@private
+function FateAutomation:handleEvents()
+    if Svc.Condition[CharacterCondition.dead] and self.currentState ~= AutomationState.Dead then
+        self:updateState(AutomationState.Dead)
+    end
+end
+
 function FateAutomation:run()
+    self:handleEvents()
     self.currentState.Exec()
+    -- release control for 0.1 to allow game state to update in between calls
+    yield("/wait 0.1")
 end

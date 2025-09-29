@@ -573,13 +573,6 @@ function IsBlacklistedFate(fateName, zone)
             return true
         end
     end
-    if not JoinCollectionsFates then
-        for _, collectionsFate in ipairs(zone.fatesList.collectionsFates) do
-            if collectionsFate.fateName == fateName then
-                return true
-            end
-        end
-    end
     return false
 end
 
@@ -604,7 +597,7 @@ end
 function TargetBattle()
     yield("/battletarget")
     yield("/wait 0.1")
-    return Svc.Targets.Target ~= nil
+    return Svc.Targets.Target ~= nil and Svc.Targets.Target:IsHostile()
 end
 
 ---@class FateObjInfo
@@ -683,9 +676,7 @@ function TargetFateGatherable(fate)
     local bestObjInfo = nil
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+        if obj ~= nil and obj.IsTargetable then
             local info = BuildFateObjInfo(obj)
             if info.kind == ObjectKind.EventObj then
                 if bestObjInfo == nil or bestObjInfo.distance > info.distance then
@@ -767,12 +758,50 @@ function TargetFateBoss(fate)
     return false
 end
 
+---@return boolean
 function TargetForlornMaiden()
     yield("/target Forlorn Maiden")
+    -- really don't like not just returning a truthy statement but type system
+    -- didn't think it reduced to a boolean
+    if Svc.Targets.Target ~= nil and string.find(tostring(Svc.Targets.Target.Name), "Forlorn") then
+        return true
+    end
+    return false
 end
 
+---@return boolean
 function TargetForlorn()
     yield("/target The Forlorn")
+    if Svc.Targets.Target ~= nil and string.find(tostring(Svc.Targets.Target.Name), "Forlorn") then
+        return true
+    end
+    return false
+end
+
+---Targets the closest fate mob indiscriminant of any
+---other properties
+---@param fate FateWrapper
+---@return boolean
+function TargetClosestFateMob(fate)
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil
+            and obj.IsTargetable
+            and EntityWrapper(obj).FateId == fate.Id
+            and obj:IsHostile() then
+            local info = BuildFateObjInfo(obj)
+            if bestObjInfo == nil or bestObjInfo.distance > info.distance then
+                bestObjInfo = info
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
 end
 
 ---@param statusId number
