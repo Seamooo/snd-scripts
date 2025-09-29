@@ -397,15 +397,15 @@ function FateAutomation:turnOffCombatMods(force)
         elseif self.Config.RotationPlugin.RotationPluginKind == "Wrath" then
             yield("/wrath auto off")
         end
-    end
-    if self.Config.DodgingPlugin == nil then return end
-    if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
-        yield("/bmrai off")
-        yield("/bmrai followtarget off")
-        yield("/bmrai followcombat off")
-        yield("/bmrai followoutofcombat off")
-    elseif self.Config.DodgingPlugin.DodgingPluginKind == "BossMod" then
-        yield("/vbm ai off")
+        if self.Config.DodgingPlugin == nil then return end
+        if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
+            yield("/bmrai off")
+            yield("/bmrai followtarget off")
+            yield("/bmrai followcombat off")
+            yield("/bmrai followoutofcombat off")
+        elseif self.Config.DodgingPlugin.DodgingPluginKind == "BossMod" then
+            yield("/vbm ai off")
+        end
     end
 end
 
@@ -659,6 +659,10 @@ end
 ---@private
 function FateAutomation:mount()
     -- TODO(seamooo) rethink mount config here
+    if Svc.Condition[CharacterCondition.casting] then 
+        -- wait for mount cast to complete
+        return
+    end
     if self.Config.MountToUse == "mount roulette" then
         yield('/gaction "mount roulette"')
     else
@@ -892,6 +896,7 @@ end
 function FateAutomation:teleportToClosestAetheryteToFate(nextFate)
     local aetheryteForClosestFate = GetClosestAetheryteToPoint(nextFate.position, 200, self.currentZone)
     if aetheryteForClosestFate ~=nil then
+        yield("/vnav stop")
         return self.teleportManager(aetheryteForClosestFate.name)
     end
     return false
@@ -1200,7 +1205,6 @@ function FateAutomation:moveToTargetHitbox()
     if dir:Length() == 0 then return end
     local ideal = targetPos + (dir * desiredRange)
     local newPos = IPC.vnavmesh.PointOnFloor(ideal, false, 1.5) or ideal
-    self:logDebug(DbgTable({playerPos = playerPos, targetPos = targetPos, ideal = ideal, newPos = newPos}))
     IPC.vnavmesh.PathfindAndMoveTo(newPos, false)
 end
 
@@ -1462,14 +1466,14 @@ function FateAutomation:extractMateria()
                     yield("/wait 0.25")
                     return
                 end
-                return
-                -- if Addons.GetAddon("MaterializeDialog").Ready then
+                if Addons.GetAddon("MaterializeDialog").Ready then
+                    return
                 --     yield("/callback MaterializeDialog true 0")
                 --     yield("/wait 0.25")
-                -- else
-                --     yield("/callback Materialize true 2 0")
-                --     yield("/wait 0.25")
-                -- end
+                else
+                    yield("/callback Materialize true 2 0")
+                    yield("/wait 0.25")
+                end
             else
                 if Addons.GetAddon("Materialize").Ready then
                     yield("/callback Materialize true -1")

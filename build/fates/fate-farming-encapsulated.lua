@@ -645,15 +645,15 @@ function FateAutomation:turnOffCombatMods(force)
         elseif self.Config.RotationPlugin.RotationPluginKind == "Wrath" then
             yield("/wrath auto off")
         end
-    end
-    if self.Config.DodgingPlugin == nil then return end
-    if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
-        yield("/bmrai off")
-        yield("/bmrai followtarget off")
-        yield("/bmrai followcombat off")
-        yield("/bmrai followoutofcombat off")
-    elseif self.Config.DodgingPlugin.DodgingPluginKind == "BossMod" then
-        yield("/vbm ai off")
+        if self.Config.DodgingPlugin == nil then return end
+        if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
+            yield("/bmrai off")
+            yield("/bmrai followtarget off")
+            yield("/bmrai followcombat off")
+            yield("/bmrai followoutofcombat off")
+        elseif self.Config.DodgingPlugin.DodgingPluginKind == "BossMod" then
+            yield("/vbm ai off")
+        end
     end
 end
 
@@ -907,6 +907,10 @@ end
 ---@private
 function FateAutomation:mount()
     -- TODO(seamooo) rethink mount config here
+    if Svc.Condition[CharacterCondition.casting] then 
+        -- wait for mount cast to complete
+        return
+    end
     if self.Config.MountToUse == "mount roulette" then
         yield('/gaction "mount roulette"')
     else
@@ -1140,6 +1144,7 @@ end
 function FateAutomation:teleportToClosestAetheryteToFate(nextFate)
     local aetheryteForClosestFate = GetClosestAetheryteToPoint(nextFate.position, 200, self.currentZone)
     if aetheryteForClosestFate ~=nil then
+        yield("/vnav stop")
         return self.teleportManager(aetheryteForClosestFate.name)
     end
     return false
@@ -1448,7 +1453,6 @@ function FateAutomation:moveToTargetHitbox()
     if dir:Length() == 0 then return end
     local ideal = targetPos + (dir * desiredRange)
     local newPos = IPC.vnavmesh.PointOnFloor(ideal, false, 1.5) or ideal
-    self:logDebug(DbgTable({playerPos = playerPos, targetPos = targetPos, ideal = ideal, newPos = newPos}))
     IPC.vnavmesh.PathfindAndMoveTo(newPos, false)
 end
 
@@ -1710,14 +1714,14 @@ function FateAutomation:extractMateria()
                     yield("/wait 0.25")
                     return
                 end
-                return
-                -- if Addons.GetAddon("MaterializeDialog").Ready then
+                if Addons.GetAddon("MaterializeDialog").Ready then
+                    return
                 --     yield("/callback MaterializeDialog true 0")
                 --     yield("/wait 0.25")
-                -- else
-                --     yield("/callback Materialize true 2 0")
-                --     yield("/wait 0.25")
-                -- end
+                else
+                    yield("/callback Materialize true 2 0")
+                    yield("/wait 0.25")
+                end
             else
                 if Addons.GetAddon("Materialize").Ready then
                     yield("/callback Materialize true -1")
@@ -2645,11 +2649,11 @@ function GetFateNpcName(fateName, zone)
     return ""
 end
 
---TODO(seamooo) below should be in an separate library for 
---internal preambles
-
+---@return boolean
 function TargetBattle()
     yield("/battletarget")
+    yield("/wait 0.1")
+    return Svc.Targets.Target ~= nil
 end
 
 ---@class FateObjInfo
@@ -2659,6 +2663,7 @@ end
 ---@field maxHp number
 ---@field currHp number
 ---@field kind ObjectKind
+---@field name string
 
 ---@return FateObjInfo
 ---@param obj IGameObject
@@ -2670,12 +2675,14 @@ function BuildFateObjInfo(obj)
         distance = GetDistanceToPoint(obj.Position),
         maxHp = tpEntity.MaxHp,
         currHp = tpEntity.CurrentHp,
-        kind = obj.ObjectKind
+        kind = obj.ObjectKind,
+        name = tpEntity.Name
     }
 end
 
 ---Target an idle fate mob if one exists. Priority
 ---will be current target -> closest target
+---excludes forlorns
 ---returns true if an entity to target was found
 ---@param fate FateWrapper
 ---@boolean
@@ -2696,7 +2703,7 @@ function TargetIdleFateMob(fate)
             and obj.IsTargetable
             and EntityWrapper(obj).FateId == fate.Id then
             local info = BuildFateObjInfo(obj)
-            if info.nameplateKind == NameplateKind.HostileNotEngaged then
+            if info.nameplateKind == NameplateKind.HostileNotEngaged and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.distance > info.distance then
                     bestObjInfo = info
                 end
@@ -2758,7 +2765,7 @@ function TargetFateAdds(fate)
             and EntityWrapper(obj).FateId == fate.Id
             and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
-            if info.maxHp > 1 then
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
                     bestObjInfo = info
                 end
@@ -2791,7 +2798,7 @@ function TargetFateBoss(fate)
             and EntityWrapper(obj).FateId == fate.Id
             and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
-            if info.maxHp > 1 then
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
                     bestObjInfo = info
                 end

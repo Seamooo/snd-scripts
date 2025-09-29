@@ -718,7 +718,7 @@ function IsBossFate(fate)
 end
 
 function IsOtherNpcFate(fateName)
-    for i, otherNpcFate in ipairs(SelectedZone.fatesList.otherNpcFates) do
+    for _, otherNpcFate in ipairs(SelectedZone.fatesList.otherNpcFates) do
         if otherNpcFate.fateName == fateName then
             return true
         end
@@ -730,7 +730,7 @@ function IsSpecialFate(fateName)
     if SelectedZone.fatesList.specialFates == nil then
         return false
     end
-    for i, specialFate in ipairs(SelectedZone.fatesList.specialFates) do
+    for _, specialFate in ipairs(SelectedZone.fatesList.specialFates) do
         if specialFate == fateName then
             return true
         end
@@ -743,23 +743,16 @@ function IsBlacklistedFate(fateName)
             return true
         end
     end
-    if not JoinCollectionsFates then
-        for i, collectionsFate in ipairs(SelectedZone.fatesList.collectionsFates) do
-            if collectionsFate.fateName == fateName then
-                return true
-            end
-        end
-    end
     return false
 end
 
 function GetFateNpcName(fateName)
-    for i, fate in ipairs(SelectedZone.fatesList.otherNpcFates) do
+    for _, fate in ipairs(SelectedZone.fatesList.otherNpcFates) do
         if fate.fateName == fateName then
             return fate.npcName
         end
     end
-    for i, fate in ipairs(SelectedZone.fatesList.collectionsFates) do
+    for _, fate in ipairs(SelectedZone.fatesList.collectionsFates) do
         if fate.fateName == fateName then
             return fate.npcName
         end

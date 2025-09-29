@@ -600,11 +600,11 @@ function GetFateNpcName(fateName, zone)
     return ""
 end
 
---TODO(seamooo) below should be in an separate library for 
---internal preambles
-
+---@return boolean
 function TargetBattle()
     yield("/battletarget")
+    yield("/wait 0.1")
+    return Svc.Targets.Target ~= nil
 end
 
 ---@class FateObjInfo
@@ -614,6 +614,7 @@ end
 ---@field maxHp number
 ---@field currHp number
 ---@field kind ObjectKind
+---@field name string
 
 ---@return FateObjInfo
 ---@param obj IGameObject
@@ -625,12 +626,14 @@ function BuildFateObjInfo(obj)
         distance = GetDistanceToPoint(obj.Position),
         maxHp = tpEntity.MaxHp,
         currHp = tpEntity.CurrentHp,
-        kind = obj.ObjectKind
+        kind = obj.ObjectKind,
+        name = tpEntity.Name
     }
 end
 
 ---Target an idle fate mob if one exists. Priority
 ---will be current target -> closest target
+---excludes forlorns
 ---returns true if an entity to target was found
 ---@param fate FateWrapper
 ---@boolean
@@ -651,7 +654,7 @@ function TargetIdleFateMob(fate)
             and obj.IsTargetable
             and EntityWrapper(obj).FateId == fate.Id then
             local info = BuildFateObjInfo(obj)
-            if info.nameplateKind == NameplateKind.HostileNotEngaged then
+            if info.nameplateKind == NameplateKind.HostileNotEngaged and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.distance > info.distance then
                     bestObjInfo = info
                 end
@@ -713,7 +716,7 @@ function TargetFateAdds(fate)
             and EntityWrapper(obj).FateId == fate.Id
             and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
-            if info.maxHp > 1 then
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
                     bestObjInfo = info
                 end
@@ -746,7 +749,7 @@ function TargetFateBoss(fate)
             and EntityWrapper(obj).FateId == fate.Id
             and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
-            if info.maxHp > 1 then
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
                     bestObjInfo = info
                 end
