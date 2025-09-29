@@ -209,17 +209,17 @@ end
 
 ---@return boolean
 function FateTable:isBossFate()
-    return self.bossFateCtx ~= nil
+    return self.bossFateCtx
 end
 
 ---@return boolean
 function FateTable:isOtherNpcFate()
-    return self.otherNpcFateCtx ~= nil
+    return self.otherNpcFateCtx
 end
 
 ---@return boolean
 function FateTable:isSpecialFate()
-    return self.specialFateCtx ~= nil
+    return self.specialFateCtx
 end
 
 ---@param fateObj FateWrapper
@@ -376,6 +376,8 @@ function FateAutomation:turnOnCombatMods(force)
             yield("/bmrai maxdistancetarget "..MAX_DISTANCE)
             yield("/bmrai followoutofcombat on ")
         elseif dodgingConfig.DodgingPluginKind == "BossMod" then
+            -- ensure autotargetting is off
+            yield("/vbm cfg AIConfig ForbidActions True")
             yield("/vbm ai on")
         end
     end
@@ -831,7 +833,10 @@ function FateAutomation:selectNextFate()
                 (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
             ) then
             self:logDebug("Boss fate is not at required completion percent ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate.duration == 0 then
+        elseif tpFate.duration == 0 and not (
+            (
+                tpFate.isOtherNpcFate or tpFate.isCollectionsFate
+            ) and tpFate.startTime == 0) then
             self:logDebug("Found fate with duration zero ("..tpFate.fateName.."). Skipping..")
         else
             -- filtered elements here
@@ -858,11 +863,11 @@ local function newAntiStuckChecker(disableFly)
     local lastExecAntiStuckTime = nil
     return function()
         local now = os.clock()
-        if lastExecAntiStuckTime ~= nil and lastExecAntiStuckTime - now < 8 then
+        if lastExecAntiStuckTime ~= nil and now - lastStuckCheckTime < 8 then
             -- give antistuck significant time to execute
             return
         end
-        if lastStuckCheckTime == nil or lastStuckCheckTime - now > 3 then
+        if lastStuckCheckTime == nil or now - lastStuckCheckTime > 3 then
             lastStuckCheckTime = now
             if lastStuckCheckPosition == nil then
                 lastStuckCheckPosition = Svc.ClientState.LocalPlayer.Position
@@ -1002,15 +1007,6 @@ function FateAutomation:moveToFate()
 end
 
 ---@private
-function FateAutomation:moveToNpc()
-    yield("/target "..self.currentFate.npcName)
-    if(Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
-        yield("/target "..self.currentFate.npcName)
-
-    end
-end
-
----@private
 ---@return StateFunction
 function FateAutomation:interactWithFateNpc()
     return {
@@ -1042,7 +1038,7 @@ function FateAutomation:interactWithFateNpc()
                 end
                 -- move to npc if out of range
                 if GetDistanceToPoint(Svc.Targets.Target.Position) > 5 then
-                    self:moveToNpc()
+                    yield("/vnav movetarget")
                     return
                 end
 
@@ -1052,6 +1048,7 @@ function FateAutomation:interactWithFateNpc()
                 elseif not Svc.Condition[CharacterCondition.occupied] then
                     -- interact with npc
                     yield("/interact")
+                    yield("/wait 0.25")
                 end
             end
         end,
@@ -1267,8 +1264,11 @@ function FateAutomation:doFate()
                 ClearTarget()
                 if self.currentFate.hasContinuation then
                     self:updateState(AutomationState.WaitForContinuation)
+                else
+                    self:turnOffCombatMods()
+                    self:updateState(AutomationState.Ready)
                 end
-            elseif Svc.Condition[CharacterCondition.Mounted] then
+            elseif Svc.Condition[CharacterCondition.mounted] then
                 self:logDebug("branch 6")
                 self:updateState(AutomationState.MiddleOfFateDismount)
                 return
@@ -1286,15 +1286,16 @@ function FateAutomation:doFate()
                 end
             end
             -- clear fatenpc if targeted
-            if self.currentFate.npcName ~= nil and GetTargetName() == self.currentFate.npcName then
+            if self.currentFate.npcName ~= nil and self.currentFate.npcName ~= "" and GetTargetName() == self.currentFate.npcName then
                 ClearTarget()
                 return
             end
+            self:turnOnCombatMods()
             -- select highest priority target available
             ---@type FateTargetEntity
             local targetTy = nil
-            for ty, x in ipairs(targetPrio) do
-                local targetFn = targetJmpTable[x]
+            for _, ty in ipairs(targetPrio) do
+                local targetFn = targetJmpTable[ty]
                 if targetFn ~= nil then
                     if targetFn() then
                         targetTy = ty

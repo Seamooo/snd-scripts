@@ -457,17 +457,17 @@ end
 
 ---@return boolean
 function FateTable:isBossFate()
-    return self.bossFateCtx ~= nil
+    return self.bossFateCtx
 end
 
 ---@return boolean
 function FateTable:isOtherNpcFate()
-    return self.otherNpcFateCtx ~= nil
+    return self.otherNpcFateCtx
 end
 
 ---@return boolean
 function FateTable:isSpecialFate()
-    return self.specialFateCtx ~= nil
+    return self.specialFateCtx
 end
 
 ---@param fateObj FateWrapper
@@ -624,6 +624,8 @@ function FateAutomation:turnOnCombatMods(force)
             yield("/bmrai maxdistancetarget "..MAX_DISTANCE)
             yield("/bmrai followoutofcombat on ")
         elseif dodgingConfig.DodgingPluginKind == "BossMod" then
+            -- ensure autotargetting is off
+            yield("/vbm cfg AIConfig ForbidActions True")
             yield("/vbm ai on")
         end
     end
@@ -766,24 +768,20 @@ function FateAutomation:ready()
                 self:updateState(AutomationState.SummonChocobo)
                 return
             end
-            self:logDebug(tostring(__LINE__()))
             if self.currentFate == nil or not IsFateActive(self.currentFate.fateObject) then
                 self.currentFate = self:selectNextFate()
                 return
             end
-            self:logDebug(tostring(__LINE__()))
             -- TODO(seamooo) implement switch instances here
             -- TODO(seamooo) implement fly to aetheryte here
 
             if not Player.Available then
                 return
             end
-            self:logDebug(tostring(__LINE__()))
             if self.currentFate ~= nil and self.currentZone ~= nil then
                 SetMapFlag(self.currentZone.zoneId, self.currentFate.position)
                 self:updateState(AutomationState.MoveToFate)
             end
-            self:logDebug(tostring(__LINE__()))
 
         end,
         Dispose = function() end
@@ -1083,7 +1081,10 @@ function FateAutomation:selectNextFate()
                 (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
             ) then
             self:logDebug("Boss fate is not at required completion percent ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate.duration == 0 then
+        elseif tpFate.duration == 0 and not (
+            (
+                tpFate.isOtherNpcFate or tpFate.isCollectionsFate
+            ) and tpFate.startTime == 0) then
             self:logDebug("Found fate with duration zero ("..tpFate.fateName.."). Skipping..")
         else
             -- filtered elements here
@@ -1110,11 +1111,11 @@ local function newAntiStuckChecker(disableFly)
     local lastExecAntiStuckTime = nil
     return function()
         local now = os.clock()
-        if lastExecAntiStuckTime ~= nil and lastExecAntiStuckTime - now < 8 then
+        if lastExecAntiStuckTime ~= nil and now - lastStuckCheckTime < 8 then
             -- give antistuck significant time to execute
             return
         end
-        if lastStuckCheckTime == nil or lastStuckCheckTime - now > 3 then
+        if lastStuckCheckTime == nil or now - lastStuckCheckTime > 3 then
             lastStuckCheckTime = now
             if lastStuckCheckPosition == nil then
                 lastStuckCheckPosition = Svc.ClientState.LocalPlayer.Position
@@ -1254,15 +1255,6 @@ function FateAutomation:moveToFate()
 end
 
 ---@private
-function FateAutomation:moveToNpc()
-    yield("/target "..self.currentFate.npcName)
-    if(Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
-        yield("/target "..self.currentFate.npcName)
-
-    end
-end
-
----@private
 ---@return StateFunction
 function FateAutomation:interactWithFateNpc()
     return {
@@ -1294,7 +1286,7 @@ function FateAutomation:interactWithFateNpc()
                 end
                 -- move to npc if out of range
                 if GetDistanceToPoint(Svc.Targets.Target.Position) > 5 then
-                    self:moveToNpc()
+                    yield("/vnav movetarget")
                     return
                 end
 
@@ -1304,6 +1296,7 @@ function FateAutomation:interactWithFateNpc()
                 elseif not Svc.Condition[CharacterCondition.occupied] then
                     -- interact with npc
                     yield("/interact")
+                    yield("/wait 0.25")
                 end
             end
         end,
@@ -1519,8 +1512,11 @@ function FateAutomation:doFate()
                 ClearTarget()
                 if self.currentFate.hasContinuation then
                     self:updateState(AutomationState.WaitForContinuation)
+                else
+                    self:turnOffCombatMods()
+                    self:updateState(AutomationState.Ready)
                 end
-            elseif Svc.Condition[CharacterCondition.Mounted] then
+            elseif Svc.Condition[CharacterCondition.mounted] then
                 self:logDebug("branch 6")
                 self:updateState(AutomationState.MiddleOfFateDismount)
                 return
@@ -1538,15 +1534,16 @@ function FateAutomation:doFate()
                 end
             end
             -- clear fatenpc if targeted
-            if self.currentFate.npcName ~= nil and GetTargetName() == self.currentFate.npcName then
+            if self.currentFate.npcName ~= nil and self.currentFate.npcName ~= "" and GetTargetName() == self.currentFate.npcName then
                 ClearTarget()
                 return
             end
+            self:turnOnCombatMods()
             -- select highest priority target available
             ---@type FateTargetEntity
             local targetTy = nil
-            for ty, x in ipairs(targetPrio) do
-                local targetFn = targetJmpTable[x]
+            for _, ty in ipairs(targetPrio) do
+                local targetFn = targetJmpTable[ty]
                 if targetFn ~= nil then
                     if targetFn() then
                         targetTy = ty
@@ -1554,7 +1551,6 @@ function FateAutomation:doFate()
                     end
                 end
             end
-            self:logDebug(tostring(__LINE__()))
             if targetTy == nil then
                 -- no target found
                 return
@@ -1564,7 +1560,6 @@ function FateAutomation:doFate()
                 -- target hasn't registered yet
                 return
             end
-            self:logDebug(tostring(__LINE__()))
             if targetTy == FateTargetEntity.Gatherables then
                 if Svc.Condition[CharacterCondition.casting] then
                     -- finish interact
@@ -1586,9 +1581,7 @@ function FateAutomation:doFate()
                     yield("/vnav stop")
                 end
             elseif not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) and not Svc.Condition[CharacterCondition.casting] then
-                self:logDebug(tostring(__LINE__()))
                 self:moveToTargetHitbox()
-                self:logDebug(tostring(__LINE__()))
                 return
             end
         end,
@@ -2272,7 +2265,6 @@ end
 ---@param zoneId number
 ---@param position System_Numerics_Vector3
 function SetMapFlag(zoneId, position)
-    Dalamud.Log("[FATE] Setting map flag to zone #"..zoneId..", (X: "..position.X..", "..position.Z.." )")
     Instances.Map.Flag:SetFlagMapMarker(zoneId, position.X, position.Z)
 end
 
@@ -2326,10 +2318,10 @@ end
 ---@param ... number
 function GetNodeText(addonName, nodePath, ...)
     local addon = Addons.GetAddon(addonName)
-    repeat
-        yield("/wait 0.1")
-    until addon.Ready
-    return addon.GetNode(nodePath, ...).Text
+    while not addon.Ready do
+        yield("/wait 0.25")
+    end
+    return addon:GetNode(nodePath, ...).Text
 end
 
 ---@param destinationAetheryte string
@@ -2509,7 +2501,6 @@ end
 ---@return AetheryteTable?
 function GetClosestAetheryteToPoint(position, teleportTimePenalty, zone)
     local directFlightDistance = GetDistanceToPoint(position)
-    Dalamud.Log("[FATE] Direct flight distance is: "..directFlightDistance)
     local closestAetheryte = GetClosestAetheryte(position, teleportTimePenalty, zone)
     if closestAetheryte ~= nil then
         local closestAetheryteDistance = DistanceBetween(position, closestAetheryte.position) + teleportTimePenalty
@@ -2764,7 +2755,8 @@ function TargetFateAdds(fate)
         local obj = Svc.Objects[i]
         if obj ~= nil
             and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+            and EntityWrapper(obj).FateId == fate.Id
+            and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
@@ -2796,7 +2788,8 @@ function TargetFateBoss(fate)
         local obj = Svc.Objects[i]
         if obj ~= nil
             and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+            and EntityWrapper(obj).FateId == fate.Id
+            and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then

@@ -61,7 +61,7 @@ local AddonWrapper = {}
 
 ---@param ... number 
 ---@return NodeWrapper
-function AddonWrapper.GetNode(...) end
+function AddonWrapper:GetNode(...) end
 
 ---@class Addons
 ---@field GetAddon fun(name: string): AddonWrapper
@@ -295,6 +295,16 @@ local VnavmeshIPC = {}
 ---@field SetForceDisabled fun(): boolean
 local BossmodIPC = {}
 
+---An opaque type representing the value returned from Register
+---@class WrathComboLeaseGuid
+local WrathComboLeaseGuid
+
+---@class WrathComboIPC
+---@field IPCReady fun(): boolean
+---@field GetAutoRotationState fun(): boolean
+---@field SetAutoRotationState fun(lease: WrathComboLeaseGuid, enabled: boolean)
+local WrathComboIPC = {}
+
 ---@class IPC
 ---@field IsInstalled fun(name: string): boolean
 ---@field GetAvailablePlugins fun(): any
@@ -303,6 +313,7 @@ local BossmodIPC = {}
 ---@field TextAdvance TextAdvanceIPC?
 ---@field vnavmesh VnavmeshIPC?
 ---@field BossMod BossModIPC?
+---@field WrathCombo WrathComboIPC?
 IPC = {}
 
 ---@class StatusWrapper

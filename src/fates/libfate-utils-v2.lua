@@ -220,7 +220,6 @@ end
 ---@param zoneId number
 ---@param position System_Numerics_Vector3
 function SetMapFlag(zoneId, position)
-    Dalamud.Log("[FATE] Setting map flag to zone #"..zoneId..", (X: "..position.X..", "..position.Z.." )")
     Instances.Map.Flag:SetFlagMapMarker(zoneId, position.X, position.Z)
 end
 
@@ -274,10 +273,10 @@ end
 ---@param ... number
 function GetNodeText(addonName, nodePath, ...)
     local addon = Addons.GetAddon(addonName)
-    repeat
-        yield("/wait 0.1")
-    until addon.Ready
-    return addon.GetNode(nodePath, ...).Text
+    while not addon.Ready do
+        yield("/wait 0.25")
+    end
+    return addon:GetNode(nodePath, ...).Text
 end
 
 ---@param destinationAetheryte string
@@ -457,7 +456,6 @@ end
 ---@return AetheryteTable?
 function GetClosestAetheryteToPoint(position, teleportTimePenalty, zone)
     local directFlightDistance = GetDistanceToPoint(position)
-    Dalamud.Log("[FATE] Direct flight distance is: "..directFlightDistance)
     local closestAetheryte = GetClosestAetheryte(position, teleportTimePenalty, zone)
     if closestAetheryte ~= nil then
         local closestAetheryteDistance = DistanceBetween(position, closestAetheryte.position) + teleportTimePenalty
@@ -712,7 +710,8 @@ function TargetFateAdds(fate)
         local obj = Svc.Objects[i]
         if obj ~= nil
             and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+            and EntityWrapper(obj).FateId == fate.Id
+            and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
@@ -744,7 +743,8 @@ function TargetFateBoss(fate)
         local obj = Svc.Objects[i]
         if obj ~= nil
             and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+            and EntityWrapper(obj).FateId == fate.Id
+            and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
