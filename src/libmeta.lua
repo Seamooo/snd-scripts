@@ -29,6 +29,17 @@ Vector2 = {}
 ---@class IEnumerable<T>: { [integer]: T}
 ---@field Count number
 
+---@class KeyValuePair<K, V>: { Key: K, Value: V }
+
+---@class Dictionary<K,V>: { [K]: V }
+local Dictionary = {}
+
+---@generic K, V
+---@param self Dictionary<K,V>
+---@param key K
+---@return V
+function Dictionary:get_Item(key) end
+
 ---@class Lumina_Excel_Text_ReadOnly_ReadOnlySeString
 ---@field GetText fun(self): string
 
@@ -303,6 +314,10 @@ local WrathComboLeaseGuid
 ---@field IPCReady fun(): boolean
 ---@field GetAutoRotationState fun(): boolean
 ---@field SetAutoRotationState fun(lease: WrathComboLeaseGuid, enabled: boolean)
+---@field Register fun(scriptName: string): WrathComboLeaseGuid?
+---@field GetComboNamesForJob fun(jobId: number): IEnumerable<string>?
+---@field GetComboOptionNamesForJob fun(jobId: number): Dictionary<string,IEnumerable<string>>?
+---@field ReleaseControl fun(lease: WrathComboLeaseGuid)
 local WrathComboIPC = {}
 
 ---@class IPC
