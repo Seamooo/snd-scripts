@@ -70,7 +70,7 @@ local NodeWrapper = {}
 --- TODO(seamooo) investigate below type
 local AddonWrapper = {}
 
----@param ... number 
+---@param ... number
 ---@return NodeWrapper
 function AddonWrapper:GetNode(...) end
 
@@ -81,7 +81,6 @@ Addons = {}
 ---@class Config
 ---@field Get fun(varName: string): any?
 Config = {}
-
 
 ---@class Dalamud
 ---@field Log fun(message: any)
@@ -110,7 +109,7 @@ Entity = {}
 ---@field HandInCount number
 ---@field Location System_Numerics_Vector3
 ---@field Progress number
----@field IsBonus boolean 
+---@field IsBonus boolean
 ---@field Radius number
 ---technically a fate rule field here but omitted until enums are more concrete
 ---@field Level number
@@ -124,7 +123,7 @@ local FateWrapper = {}
 ---@class Fates
 ---@field GetFateById fun(fateId: number): FateWrapper
 ---@field GetNearestFate fun(): FateWrapper
----@field GetActiveFates fun(): IEnumerable<FateWrapper> 
+---@field GetActiveFates fun(): IEnumerable<FateWrapper>
 ---@field CurrentFate fun(): FateWrapper
 Fates = {}
 
@@ -206,7 +205,7 @@ local MapWrapper = {}
 ---@field Teleport fun(aetheryte: any)
 ---@field Teleport fun(aetheryteId: number, subIndex: number)
 ---@field GetAetherytePosition fun(self, aetheryteId: number): System_Numerics_Vector3
----@field IsAetheryteUnlocked fun(self, aetheryteId: number): boolean 
+---@field IsAetheryteUnlocked fun(self, aetheryteId: number): boolean
 local TelepoWrapper = {}
 
 ---@class Instances
@@ -285,7 +284,7 @@ local TextAdvanceIPC = {}
 
 ---@class VnavmeshIPC
 ---@field IsReady fun(): boolean
----@field BuildProgress fun(): number 
+---@field BuildProgress fun(): number
 ---@field Reload fun(): boolean
 ---@field Rebuild fun(): boolean
 ---@field PathfindAndMoveTo fun(dest: System_Numerics_Vector3, fly: boolean): boolean
@@ -434,7 +433,7 @@ local ObjectKind = {
     Housing = 12,
     Cutscene = 13,
     CardStand = 14,
-    Ornament = 15
+    Ornament = 15,
 }
 
 ---@class ObjectKindEnum
@@ -491,7 +490,7 @@ local NameplateKind = {
     OutOfDutyPartyPC = 22,
     InDutyPCInPartyTank = 27,
     InDutyPcInPartyHealer = 28,
-    InDutyPCInPartyDPS = 29
+    InDutyPCInPartyDPS = 29,
 }
 
 ---Used for typing the loaded enum type

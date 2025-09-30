@@ -5,9 +5,11 @@
   "scripts": {
     "build": "tsx build.ts",
     "check": "lua-language-server --check src/**.lua",
+    "fmt": "stylua --no-editorconfig src/",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@johnnymorganz/stylua-bin": "^2.3.0",
     "@types/node": "^24.5.2",
     "husky": "^9.1.7",
     "luabundle": "^1.7.0",

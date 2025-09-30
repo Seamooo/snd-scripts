@@ -44,7 +44,6 @@ WrathIpcClientError = {
     GetComboOptionsFailed = 3,
 }
 
-
 ---@param config WrathIpcClientConfig
 ---@return Result<WrathIpcClient, WrathIpcClientError>
 ---@nodiscard
@@ -67,7 +66,9 @@ end
 ---must call this at the start of every method
 ---@private
 function WrathIpcClient:disposeCheck()
-    if self._disposed then error("use after free") end
+    if self._disposed then
+        error("use after free")
+    end
 end
 
 ---@param jobId number id of the job to enable rotation options for
@@ -86,7 +87,6 @@ function WrathIpcClient:EnableJobRotations(jobId)
     end
     return Result.Ok(nil)
 end
-
 
 function WrathIpcClient:Dispose()
     self:disposeCheck()

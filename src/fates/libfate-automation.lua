@@ -176,11 +176,10 @@ end
 -- add types until mutual exclusivity is met (hopefully very limited subset
 -- of the powerset in the worst case)
 
-
 ---@class CollectionsFateCtx
 ---@field haveMaxCredit boolean
 
----@class FateTable 
+---@class FateTable
 ---@field fateObject FateWrapper
 ---@field fateId number
 ---@field fateName string
@@ -278,28 +277,28 @@ local Cmp = {
 -- enforce
 ---@enum AutomationState
 local AutomationState = {
-    Init                    = 0,
-    Ready                   = 1,
-    Dead                    = 2,
-    UnexpectedCombat        = 3,
-    Mounting                = 4,
-    NpcDismount             = 5,
-    MiddleOfFateDismount    = 6,
-    MoveToFate              = 7,
-    InteractWithNpc         = 8,
-    CollectionsFateTurnIn   = 9,
-    DoFate                  = 10,
-    WaitForContinuation     = 11,
-    ChangingInstances       = 12,
-    ChangeInstanceDismount  = 13,
-    FlyBackToAetheryte      = 14,
-    ExtractMateria          = 15,
-    Repair                  = 16,
-    ExchangingVouchers      = 17,
-    ProcessRetainers        = 18,
-    GcTurnIn                = 19,
-    SummonChocobo           = 20,
-    AutoBuyGysahlGreens     = 21
+    Init = 0,
+    Ready = 1,
+    Dead = 2,
+    UnexpectedCombat = 3,
+    Mounting = 4,
+    NpcDismount = 5,
+    MiddleOfFateDismount = 6,
+    MoveToFate = 7,
+    InteractWithNpc = 8,
+    CollectionsFateTurnIn = 9,
+    DoFate = 10,
+    WaitForContinuation = 11,
+    ChangingInstances = 12,
+    ChangeInstanceDismount = 13,
+    FlyBackToAetheryte = 14,
+    ExtractMateria = 15,
+    Repair = 16,
+    ExchangingVouchers = 17,
+    ProcessRetainers = 18,
+    GcTurnIn = 19,
+    SummonChocobo = 20,
+    AutoBuyGysahlGreens = 21,
 }
 
 ---@class IDisposable
@@ -311,7 +310,7 @@ local AutomationState = {
 ---@class FateAutomation
 ---@field Config FateAutomationConfig
 ---@field private currentFate FateTable?
----@field private currentState StateFunction 
+---@field private currentState StateFunction
 ---@field private currentZone ZoneFateInfoExt?
 ---@field private combatModsOn boolean
 ---@field private teleportManager (fun(aetheryteName: string): boolean)?
@@ -329,21 +328,21 @@ function FateAutomation.new(Config)
         combatModsOn = false,
         teleportManager = nil,
     }, FateAutomation)
-    rv:updateState(AutomationState.Init);
+    rv:updateState(AutomationState.Init)
     return rv
 end
 
 ---@private
 function FateAutomation:foodCheck()
     if not HasStatusId(48) and self.Config.Food ~= nil and self.Config.Food ~= "" then
-        yield("/item "..self.Config.Food)
+        yield("/item " .. self.Config.Food)
     end
 end
 
 ---@private
 function FateAutomation:potCheck()
     if not HasStatusId(49) and self.Config.Potion ~= nil and self.Config.Potion ~= "" then
-        yield("/item "..self.Config.Potion)
+        yield("/item " .. self.Config.Potion)
     end
 end
 
@@ -373,7 +372,7 @@ function FateAutomation:turnOnCombatMods(force)
             yield("/bmrai on")
             yield("/bmrai followtarget on")
             yield("/bmrai followcombat on")
-            yield("/bmrai maxdistancetarget "..MAX_DISTANCE)
+            yield("/bmrai maxdistancetarget " .. MAX_DISTANCE)
             yield("/bmrai followoutofcombat on ")
         elseif dodgingConfig.DodgingPluginKind == "BossMod" then
             -- ensure autotargetting is off
@@ -397,7 +396,9 @@ function FateAutomation:turnOffCombatMods(force)
         elseif self.Config.RotationPlugin.RotationPluginKind == "Wrath" then
             yield("/wrath auto off")
         end
-        if self.Config.DodgingPlugin == nil then return end
+        if self.Config.DodgingPlugin == nil then
+            return
+        end
         if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
             yield("/bmrai off")
             yield("/bmrai followtarget off")
@@ -418,7 +419,7 @@ function FateAutomation:init()
             local requiredPlugins = {
                 "TextAdvance",
                 "vnavmesh",
-                "Lifestream"
+                "Lifestream",
             }
             local needBossMod = (
                 self.Config.DodgingPlugin ~= nil
@@ -430,7 +431,9 @@ function FateAutomation:init()
             ) or self.Config.RotationPlugin.RotationPluginKind == "BossModReborn"
             if needBossMod and needBossModReborn then
                 -- TODO(seamooo) error text for this would be good
-                yield("/echo BossMod and BossModReborn are incompatible, ensure your configuration only uses at most one")
+                yield(
+                    "/echo BossMod and BossModReborn are incompatible, ensure your configuration only uses at most one"
+                )
                 self:log(tostring(debug.traceback()))
                 error("enabled both bossmod and bossmodreborn in config", 2)
             end
@@ -446,28 +449,27 @@ function FateAutomation:init()
             if self.Config.RotationPlugin.RotationPluginKind == "RotationSolver" then
                 table.insert(requiredPlugins, "RotationSolver")
             end
-            self:log("configuration requires "..StringifyArray(requiredPlugins))
+            self:log("configuration requires " .. StringifyArray(requiredPlugins))
             local missingPlugins = false
             for _, plugin in ipairs(requiredPlugins) do
                 if not HasPlugin(plugin) then
                     missingPlugins = true
-                    yield("/echo missing "..plugin)
-                    self:log("missing "..plugin)
+                    yield("/echo missing " .. plugin)
+                    self:log("missing " .. plugin)
                 end
             end
-            if(missingPlugins) then
+            if missingPlugins then
                 error("some required plugins were missing, check logs for details")
             end
             TurnOnTextAdvance()
-            self.turnOffCombatMods(self, true);
-            self.currentZone = GetCurrentZone();
-            self.teleportManager = NewTeleportManager(
-                60,
-                function(message) self:logDebug(message) end
-            )
+            self.turnOffCombatMods(self, true)
+            self.currentZone = GetCurrentZone()
+            self.teleportManager = NewTeleportManager(60, function(message)
+                self:logDebug(message)
+            end)
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -485,13 +487,12 @@ function FateAutomation:ready()
 
             local shouldWaitForBonusBuff = (
                 self.Config.EnableWaitIfBonusBuff
-                and (
-                    HasStatusId(TWISTOFFATE_FORLORN_STATUS_ID)
-                    or HasStatusId(TWISTOFFATE_MAIDEN_STATUS_ID)
-                )
+                and (HasStatusId(TWISTOFFATE_FORLORN_STATUS_ID) or HasStatusId(TWISTOFFATE_MAIDEN_STATUS_ID))
             )
-            local needsRepair = self.Config.RepairPercent ~= nil and Inventory.GetItemsInNeedOfRepairs(self.Config.RepairPercent).Count > 0
-            local needsMateriaExtract = self.Config.EnableAutoExtractMateria and Inventory.GetSpiritbondedItems().Count > 0
+            local needsRepair = self.Config.RepairPercent ~= nil
+                and Inventory.GetItemsInNeedOfRepairs(self.Config.RepairPercent).Count > 0
+            local needsMateriaExtract = self.Config.EnableAutoExtractMateria
+                and Inventory.GetSpiritbondedItems().Count > 0
 
             -- TODO(seamooo) implement gem turn in here
 
@@ -511,12 +512,14 @@ function FateAutomation:ready()
 
             -- TODO(seamooo) implement process retainers / gc turnin here
 
-            if self.Config.ChocoboStance ~= nil
+            if
+                self.Config.ChocoboStance ~= nil
                 and GetBuddyTimeRemaining() <= self.Config.ResummonChocoboTimeLeft
                 and (
                     (not shouldWaitForBonusBuff and self.Config.EnableAutoBuyGysahlGreens)
                     or Inventory.GetItemCount(GYSAHLGREENS_ITEMID) > 0
-                ) then
+                )
+            then
                 self:updateState(AutomationState.SummonChocobo)
                 return
             end
@@ -534,9 +537,8 @@ function FateAutomation:ready()
                 SetMapFlag(self.currentZone.zoneId, self.currentFate.position)
                 self:updateState(AutomationState.MoveToFate)
             end
-
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -560,7 +562,7 @@ function FateAutomation:handleDeath()
                 self:updateState(AutomationState.Ready)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -576,7 +578,7 @@ local function tryDismount(disableFly)
         ---@type boolean
         local isFlying = Svc.Condition[CharacterCondition.flying]
         if isFlying then
-            yield('/ac dismount')
+            yield("/ac dismount")
             local now = os.clock()
             if lastStuckCheckTime == nil or lastStuckCheckTime - now >= 0.3 then
                 local random = RandomAdjustCoordinates(Svc.ClientState.LocalPlayer.Position, 10)
@@ -652,24 +654,23 @@ function FateAutomation:handleUnexpectedCombat()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
 ---@private
 function FateAutomation:mount()
     -- TODO(seamooo) rethink mount config here
-    if Svc.Condition[CharacterCondition.casting] then 
+    if Svc.Condition[CharacterCondition.casting] then
         -- wait for mount cast to complete
         return
     end
     if self.Config.MountToUse == "mount roulette" then
         yield('/gaction "mount roulette"')
     else
-        yield('/mount "'..self.Config.MountToUse..'"')
+        yield('/mount "' .. self.Config.MountToUse .. '"')
     end
 end
-
 
 ---@private
 ---@return StateFunction
@@ -682,7 +683,7 @@ function FateAutomation:mountState()
             end
             self:mount()
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -698,7 +699,7 @@ function FateAutomation:npcDismount()
             end
             self:updateState(AutomationState.InteractWithNpc)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -738,7 +739,7 @@ function FateAutomation:middleOfFateDismount()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -764,9 +765,13 @@ local FateCriteriaPrio = {
 ---@param a number
 ---@param b number
 ---@return Cmp
-local function cmpNumber(a,b)
-    if a < b then return Cmp.Lt end
-    if a > b then return Cmp.Gt end
+local function cmpNumber(a, b)
+    if a < b then
+        return Cmp.Lt
+    end
+    if a > b then
+        return Cmp.Gt
+    end
     return Cmp.Eq
 end
 
@@ -774,9 +779,13 @@ end
 ---@param a boolean
 ---@param b boolean
 ---@return Cmp
-local function cmpBoolean(a,b)
-    if ~a and b then return Cmp.Lt end
-    if a and ~b then return Cmp.Gt end
+local function cmpBoolean(a, b)
+    if ~a and b then
+        return Cmp.Lt
+    end
+    if a and ~b then
+        return Cmp.Gt
+    end
     return Cmp.Eq
 end
 
@@ -818,9 +827,9 @@ function FateAutomation:fateCmp(fateA, fateB)
         end,
     }
     for _, criteria in pairs(FateCriteriaPrio) do
-        local cmpFn = comparisons[criteria];
+        local cmpFn = comparisons[criteria]
         if cmpFn ~= nil then
-            local cmpResult = cmpFn();
+            local cmpResult = cmpFn()
             if cmpResult ~= Cmp.Eq then
                 return cmpResult
             end
@@ -838,22 +847,25 @@ function FateAutomation:selectNextFate()
     end
     ---@type FateTable[]
     local filteredFates = {}
-    for i = 0, fates.Count-1 do
+    for i = 0, fates.Count - 1 do
         local tpFate = BuildFateTable(fates[i], self.currentZone)
-        if (tpFate.position.X == 0 and tpFate.position.Z == 0) then
-            self:logDebug("Found fate with zero coords ("..tpFate.fateName.."). Skipping..")
+        if tpFate.position.X == 0 and tpFate.position.Z == 0 then
+            self:logDebug("Found fate with zero coords (" .. tpFate.fateName .. "). Skipping..")
         elseif tpFate.isBlacklistedFate then
-            self:logDebug("found blacklisted fate ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate:isBossFate() and (
-                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate) or
-                (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
-            ) then
-            self:logDebug("Boss fate is not at required completion percent ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate.duration == 0 and not (
-            (
-                tpFate.isOtherNpcFate or tpFate.isCollectionsFate
-            ) and tpFate.startTime == 0) then
-            self:logDebug("Found fate with duration zero ("..tpFate.fateName.."). Skipping..")
+            self:logDebug("found blacklisted fate (" .. tpFate.fateName .. "). Skipping..")
+        elseif
+            tpFate:isBossFate()
+            and (
+                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate)
+                or (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
+            )
+        then
+            self:logDebug("Boss fate is not at required completion percent (" .. tpFate.fateName .. "). Skipping..")
+        elseif
+            tpFate.duration == 0
+            and not ((tpFate.isOtherNpcFate or tpFate.isCollectionsFate) and tpFate.startTime == 0)
+        then
+            self:logDebug("Found fate with duration zero (" .. tpFate.fateName .. "). Skipping..")
         else
             -- filtered elements here
             table.insert(filteredFates, tpFate)
@@ -862,7 +874,7 @@ function FateAutomation:selectNextFate()
     ---@type FateTable?
     local rv = nil
     for _, fateTable in pairs(filteredFates) do
-        if rv == nil or self:fateCmp(rv,fateTable) == Cmp.Lt then
+        if rv == nil or self:fateCmp(rv, fateTable) == Cmp.Lt then
             rv = fateTable
         end
     end
@@ -890,7 +902,7 @@ local function newAntiStuckChecker(disableFly)
                 return
             end
             if GetDistanceToPoint(lastStuckCheckPosition) < 3 then
-                local newPos = Svc.ClientState.LocalPlayer.Position + Vector3(0,10,0)
+                local newPos = Svc.ClientState.LocalPlayer.Position + Vector3(0, 10, 0)
                 -- TODO(seamooo) debug semantics of this movement
                 yield("/vnav stop")
                 yield("/wait 0.5")
@@ -907,7 +919,7 @@ end
 ---@return boolean
 function FateAutomation:teleportToClosestAetheryteToFate(nextFate)
     local aetheryteForClosestFate = GetClosestAetheryteToPoint(nextFate.position, 200, self.currentZone)
-    if aetheryteForClosestFate ~=nil then
+    if aetheryteForClosestFate ~= nil then
         yield("/vnav stop")
         return self.teleportManager(aetheryteForClosestFate.name)
     end
@@ -955,10 +967,10 @@ function FateAutomation:moveToFate()
             if self.Config.BossFatesJob ~= nil then
                 local currentJob = Player.Job.Id
                 if self.currentFate:isBossFate() and currentJob ~= self.Config.BossFatesJob.Id then
-                    yield("/gs change"..self.Config.BossFatesJob.Name)
+                    yield("/gs change" .. self.Config.BossFatesJob.Name)
                     return
                 elseif not self.currentFate:isBossFate() and currentJob ~= self.Config.MainJob.Id then
-                    yield("/gs change"..self.Config.MainJob.Name)
+                    yield("/gs change" .. self.Config.MainJob.Name)
                     return
                 end
             end
@@ -966,15 +978,21 @@ function FateAutomation:moveToFate()
             -- target an npc/enemy when close to fate and path to them
             if GetDistanceToPoint(self.currentFate.position) < 60 then
                 if Svc.Targets.Target == nil then
-                    if (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate()) and not InActiveFate() then
-                        yield("/target "..self.currentFate.npcName)
+                    if
+                        (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate())
+                        and not InActiveFate()
+                    then
+                        yield("/target " .. self.currentFate.npcName)
                     else
                         AttemptToTargetClosestFateEnemy()
                     end
                     -- TODO(seamooo) may need a wait here for stability
                     return
                 else
-                    if (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate()) and not InActiveFate() then
+                    if
+                        (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate())
+                        and not InActiveFate()
+                    then
                         self:updateState(AutomationState.InteractWithNpc)
                         return
                     else
@@ -985,7 +1003,10 @@ function FateAutomation:moveToFate()
             end
 
             -- antistuck
-            if (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()) and Svc.Condition[CharacterCondition.mounted] then
+            if
+                (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress())
+                and Svc.Condition[CharacterCondition.mounted]
+            then
                 antiStuckChecker()
             end
 
@@ -1019,7 +1040,7 @@ function FateAutomation:moveToFate()
                 return
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1046,8 +1067,8 @@ function FateAutomation:interactWithFateNpc()
                 return
             else
                 -- target npc, not changing if already selected
-                if(Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
-                    yield("/target "..self.currentFate.npcName)
+                if Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName then
+                    yield("/target " .. self.currentFate.npcName)
                 end
                 if Svc.Condition[CharacterCondition.mounted] then
                     self:updateState(AutomationState.NpcDismount)
@@ -1069,7 +1090,7 @@ function FateAutomation:interactWithFateNpc()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1092,11 +1113,11 @@ function FateAutomation:collectionsFateTurnIn()
                 self:updateState(AutomationState.Ready)
                 return
             end
-            if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
+            if Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName then
                 self:turnOffCombatMods()
-                yield("/target "..currentFate.npcName)
+                yield("/target " .. currentFate.npcName)
                 -- potential wait here for stability
-                if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
+                if Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName then
                     if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
                         IPC.vnavmesh.PathfindAndMoveTo(currentFate.position, false)
                     end
@@ -1124,7 +1145,7 @@ function FateAutomation:collectionsFateTurnIn()
                 self:updateState(AutomationState.UnexpectedCombat)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1217,12 +1238,18 @@ function FateAutomation:moveToTargetHitbox()
     local playerPos = Svc.ClientState.LocalPlayer.Position
     local targetPos = Svc.Targets.Target.Position
     local distance = GetDistanceToTarget()
-    if distance == 0 then return end
+    if distance == 0 then
+        return
+    end
     local desiredRange = math.max(0.1, GetTargetHitboxRadius() + GetPlayerHitboxRadius() + MAX_DISTANCE)
     local STOP_EPS = 0.15
-    if distance <= (desiredRange + STOP_EPS) then return end
+    if distance <= (desiredRange + STOP_EPS) then
+        return
+    end
     local dir = Normalize(playerPos - targetPos)
-    if dir:Length() == 0 then return end
+    if dir:Length() == 0 then
+        return
+    end
     local ideal = targetPos + (dir * desiredRange)
     local newPos = IPC.vnavmesh.PointOnFloor(ideal, false, 1.5) or ideal
     IPC.vnavmesh.PathfindAndMoveTo(newPos, false)
@@ -1238,13 +1265,23 @@ function FateAutomation:doFate()
     ---@type { [FateTargetEntity]: fun(): boolean }
     local targetJmpTable = {
         [FateTargetEntity.Battle] = TargetBattle,
-        [FateTargetEntity.IdleFateMob] = function() return TargetIdleFateMob(self.currentFate.fateObject) end,
-        [FateTargetEntity.Gatherables] = function() return TargetFateGatherable(self.currentFate.fateObject) end,
-        [FateTargetEntity.Adds] = function() return TargetFateAdds(self.currentFate.fateObject) end,
-        [FateTargetEntity.Boss] = function() return TargetFateBoss(self.currentFate.fateObject) end,
+        [FateTargetEntity.IdleFateMob] = function()
+            return TargetIdleFateMob(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Gatherables] = function()
+            return TargetFateGatherable(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Adds] = function()
+            return TargetFateAdds(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Boss] = function()
+            return TargetFateBoss(self.currentFate.fateObject)
+        end,
         [FateTargetEntity.ForlornMaiden] = TargetForlornMaiden,
         [FateTargetEntity.Forlorn] = TargetForlorn,
-        [FateTargetEntity.ClosestFateMob] = function() return TargetClosestFateMob(self.currentFate.fateObject) end,
+        [FateTargetEntity.ClosestFateMob] = function()
+            return TargetClosestFateMob(self.currentFate.fateObject)
+        end,
     }
     return {
         Exec = function()
@@ -1253,28 +1290,36 @@ function FateAutomation:doFate()
                 self:updateState(AutomationState.Ready)
             end
             local currentJob = Player.Job
-            if self.currentFate:isBossFate() and self.Config.BossFatesJob ~= nil and currentJob.Id ~= self.Config.BossFatesJob.Id then
+            if
+                self.currentFate:isBossFate()
+                and self.Config.BossFatesJob ~= nil
+                and currentJob.Id ~= self.Config.BossFatesJob.Id
+            then
                 self:turnOffCombatMods()
-                yield("/gs change "..self.Config.BossFatesJob.Name)
+                yield("/gs change " .. self.Config.BossFatesJob.Name)
                 return
             elseif not self.currentFate:isBossFate() and self.Config.MainJob.Id ~= currentJob.Id then
                 self:turnOffCombatMods()
-                yield("/gs change "..self.Config.MainJob.Name)
+                yield("/gs change " .. self.Config.MainJob.Name)
                 return
                 -- XXX(seamooo) known that below comparison had failures previously
                 -- uncertain if due to self.currentFate being nil or self.currentFate.fateObject.MaxLevel being nil
-            elseif InActiveFate() and (self.currentFate.fateObject.MaxLevel < Player.Job.Level) and not Player.IsLevelSynced then
+            elseif
+                InActiveFate()
+                and (self.currentFate.fateObject.MaxLevel < Player.Job.Level)
+                and not Player.IsLevelSynced
+            then
                 yield("/lsync")
                 -- potential wait here for stability
-            elseif IsFateActive(self.currentFate.fateObject)
+            elseif
+                IsFateActive(self.currentFate.fateObject)
                 and not InActiveFate()
                 and self.currentFate.fateObject.Progress ~= nil
                 and self.currentFate.fateObject.Progress < 100
                 and (GetDistanceToPoint(self.currentFate.position) < self.currentFate.fateObject.Radius + 10)
                 and not Svc.Condition[CharacterCondition.mounted]
-                and not (
-                    IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()
-                ) then -- got pushed out of fate. go back
+                and not (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress())
+            then -- got pushed out of fate. go back
                 yield("/vnav stop")
                 self:logDebug("pushed out of fate -> pathing back")
                 IPC.vnavmesh.PathfindAndMoveTo(self.currentFate.position, Player.CanFly and not disableFly)
@@ -1292,19 +1337,26 @@ function FateAutomation:doFate()
                 self:updateState(AutomationState.MiddleOfFateDismount)
                 return
             elseif self.currentFate.collectionsFateCtx ~= nil then
-                if (
-                    self.currentFate.fateObject.EventItem ~= 0
-                    and Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= FULL_CREDIT_MIN_ITEMS
-                ) or (
-                    self.currentFate.collectionsFateCtx.haveMaxCredit
-                    and self.currentFate.fateObject.Progress == 100
-                ) then
+                if
+                    (
+                        self.currentFate.fateObject.EventItem ~= 0
+                        and Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= FULL_CREDIT_MIN_ITEMS
+                    )
+                    or (
+                        self.currentFate.collectionsFateCtx.haveMaxCredit
+                        and self.currentFate.fateObject.Progress == 100
+                    )
+                then
                     yield("/vnav stop")
                     self:updateState(AutomationState.CollectionsFateTurnIn)
                 end
             end
             -- clear fatenpc if targeted
-            if self.currentFate.npcName ~= nil and self.currentFate.npcName ~= "" and GetTargetName() == self.currentFate.npcName then
+            if
+                self.currentFate.npcName ~= nil
+                and self.currentFate.npcName ~= ""
+                and GetTargetName() == self.currentFate.npcName
+            then
                 ClearTarget()
                 return
             end
@@ -1351,12 +1403,15 @@ function FateAutomation:doFate()
                 if IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning() then
                     yield("/vnav stop")
                 end
-            elseif not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) and not Svc.Condition[CharacterCondition.casting] then
+            elseif
+                not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning())
+                and not Svc.Condition[CharacterCondition.casting]
+            then
                 self:moveToTargetHitbox()
                 return
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1379,16 +1434,24 @@ function FateAutomation:waitForContinuation()
                 if self.Config.BossFatesJob ~= nil then
                     local currentJob = Player.Job.Id
                     if not Player.IsBusy then
-                        if self.currentFate ~= nil and self.currentFate.continuationIsBoss and currentJob ~= self.Config.BossFatesJob.Id then
-                            yield("/gs change "..self.Config.BossFatesJob.Name)
-                        elseif self.currentFate ~= nil and not self.currentFate.continuationIsBoss and currentJob ~= self.Config.BossFatesJob.Id then
-                            yield("/gs change "..self.Config.MainJob.Name)
+                        if
+                            self.currentFate ~= nil
+                            and self.currentFate.continuationIsBoss
+                            and currentJob ~= self.Config.BossFatesJob.Id
+                        then
+                            yield("/gs change " .. self.Config.BossFatesJob.Name)
+                        elseif
+                            self.currentFate ~= nil
+                            and not self.currentFate.continuationIsBoss
+                            and currentJob ~= self.Config.BossFatesJob.Id
+                        then
+                            yield("/gs change " .. self.Config.MainJob.Name)
                         end
                     end
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1401,7 +1464,7 @@ function FateAutomation:changeInstance()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1414,7 +1477,7 @@ function FateAutomation:changeInstanceDismount()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1429,7 +1492,8 @@ function FateAutomation:flyBackToAetheryte()
                 self:updateState(AutomationState.Ready)
                 return
             end
-            local closestAetheryte = GetClosestAetheryteToPoint(Svc.ClientState.LocalPlayer.Position, 200, self.currentZone)
+            local closestAetheryte =
+                GetClosestAetheryteToPoint(Svc.ClientState.LocalPlayer.Position, 200, self.currentZone)
             yield("/target aetheryte")
             if Svc.Targets.Target ~= nil and GetTargetName() == "aetheryte" and GetDistanceToTarget() <= 20 then
                 if IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning() then
@@ -1457,7 +1521,7 @@ function FateAutomation:flyBackToAetheryte()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1477,7 +1541,7 @@ function FateAutomation:extractMateria()
             end
             if Inventory.GetSpiritbondedItems().Count > 0 and Inventory.GetFreeInventorySlots() > 1 then
                 if not Addons.GetAddon("Materialize").Ready then
-                    yield("/generalaction \"Materia Extraction\"")
+                    yield('/generalaction "Materia Extraction"')
                     yield("/wait 0.25")
                     return
                 end
@@ -1498,7 +1562,7 @@ function FateAutomation:extractMateria()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1536,7 +1600,7 @@ function FateAutomation:repair()
                 -- block until repair finished
                 return
             end
-            local hawkersAlleyAethernetShard = {position = Vector3(-213.95, 15.99, 49.35)}
+            local hawkersAlleyAethernetShard = { position = Vector3(-213.95, 15.99, 49.35) }
             if needsRepair.Count > 0 then
                 if self.Config.EnableSelfRepair and Inventory.GetItemCount(DARKMATTER_ITEMID) >= MIN_DARKMATTER then
                     if Addons.GetAddon("Shop").Ready then
@@ -1561,8 +1625,12 @@ function FateAutomation:repair()
                         return
                     end
                     -- TODO(seamooo) make this configurable
-                    local darkMatterVendor = {npcName="Unsynrael", position = Vector3(-257.71, 16.19, 50.11), wait=0.08}
-                    if GetDistanceToPoint(darkMatterVendor.position) > (DistanceBetween(hawkersAlleyAethernetShard.position, darkMatterVendor.position) + 10) then
+                    local darkMatterVendor =
+                        { npcName = "Unsynrael", position = Vector3(-257.71, 16.19, 50.11), wait = 0.08 }
+                    if
+                        GetDistanceToPoint(darkMatterVendor.position)
+                        > (DistanceBetween(hawkersAlleyAethernetShard.position, darkMatterVendor.position) + 10)
+                    then
                         yield("/li Hawkers' Alley")
                         -- potential wait here for stability
                     elseif Addons.GetAddon("telepotTown").Ready then
@@ -1574,7 +1642,7 @@ function FateAutomation:repair()
                         end
                     else
                         if Svc.Targets.Target == nil or GetTargetName() ~= darkMatterVendor.npcName then
-                            yield("/target "..darkMatterVendor.npcName)
+                            yield("/target " .. darkMatterVendor.npcName)
                             yield("/wait 0.25")
                         elseif not Svc.Condition[CharacterCondition.occupiedInQuestEvent] then
                             yield("/interact")
@@ -1598,8 +1666,11 @@ function FateAutomation:repair()
                         self.teleportManager("Limsa Lominsa Lower Decks")
                         return
                     end
-                    local mender = { npcName="Alistair", position = Vector3(-246.87, 16.19, 49.83)}
-                    if GetDistanceToPoint(mender.position) > (DistanceBetween(hawkersAlleyAethernetShard.position, mender.position) + 10) then
+                    local mender = { npcName = "Alistair", position = Vector3(-246.87, 16.19, 49.83) }
+                    if
+                        GetDistanceToPoint(mender.position)
+                        > (DistanceBetween(hawkersAlleyAethernetShard.position, mender.position) + 10)
+                    then
                         yield("/li Hawkers' Alley")
                         -- potential wait here for stability
                     elseif Addons.GetAddon("TelepotTown").Ready then
@@ -1611,7 +1682,7 @@ function FateAutomation:repair()
                         end
                     else
                         if Svc.Targets.Target == nil or GetTargetName() ~= mender.npcName then
-                            yield("/target "..mender.npcName)
+                            yield("/target " .. mender.npcName)
                         elseif not Svc.Condition[CharacterCondition.occupiedInQuestEvent] then
                             yield("/interact")
                         end
@@ -1624,7 +1695,7 @@ function FateAutomation:repair()
                 self:updateState(AutomationState.Ready)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1637,7 +1708,7 @@ function FateAutomation:executeBicolorExchange()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1650,7 +1721,7 @@ function FateAutomation:processRetainers()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1663,7 +1734,7 @@ function FateAutomation:grandCompanyTurnIn()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1681,10 +1752,10 @@ function FateAutomation:summonChocobo()
                 if Inventory.GetItemCount(GYSAHLGREENS_ITEMID) > 0 then
                     yield("/item Gysahl Greens")
                     yield("/wait 3")
-                    --- TODO(seamooo) any attempt to stance chocobo should be 
+                    --- TODO(seamooo) any attempt to stance chocobo should be
                     --- checked whether that stance is available to avoid error
                     --- spam
-                    yield('/cac "'..StringifyChocoboStance(self.Config.ChocoboStance)..' stance"')
+                    yield('/cac "' .. StringifyChocoboStance(self.Config.ChocoboStance) .. ' stance"')
                 elseif self.Config.EnableAutoBuyGysahlGreens then
                     self:logDebug("needs to get gysahl greens")
                     self:updateState(AutomationState.AutoBuyGysahlGreens)
@@ -1693,7 +1764,7 @@ function FateAutomation:summonChocobo()
             end
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1721,7 +1792,7 @@ function FateAutomation:autoBuyGysahlGreens()
                 self.teleportManager("Limsa Lominsa Lower Decks")
                 return
             end
-            local gysahlGreensVendor = { position=Vector3(-62.1, 18.0, 9.4), npcName="Bango Zango" }
+            local gysahlGreensVendor = { position = Vector3(-62.1, 18.0, 9.4), npcName = "Bango Zango" }
             if GetDistanceToPoint(gysahlGreensVendor.position) > 5 then
                 if not (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()) then
                     IPC.vnavmesh.PathfindAndMoveTo(gysahlGreensVendor.position, false)
@@ -1745,10 +1816,10 @@ function FateAutomation:autoBuyGysahlGreens()
                 end
             else
                 yield("/vnav stop")
-                yield("/target "..gysahlGreensVendor.npcName)
+                yield("/target " .. gysahlGreensVendor.npcName)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1759,7 +1830,7 @@ end
 ---TODO(seamooo) make the logging configurable
 ---@param message string
 function FateAutomation:logDebug(message)
-    Dalamud.LogDebug("[FATE] "..message)
+    Dalamud.LogDebug("[FATE] " .. message)
 end
 
 ---@private
@@ -1769,7 +1840,7 @@ end
 ---TODO(seamooo) make the logging configurable
 ---@param message string
 function FateAutomation:log(message)
-    Dalamud.Log("[FATE] "..message)
+    Dalamud.Log("[FATE] " .. message)
 end
 
 ---@private
@@ -1777,7 +1848,7 @@ end
 ---state should not be mutated outside of this method
 ---@param newState AutomationState
 function FateAutomation:updateState(newState)
-    self:logDebug("update state to "..newState)
+    self:logDebug("update state to " .. newState)
     local jTable = {
         [AutomationState.Init] = self.init,
         [AutomationState.Ready] = self.ready,
@@ -1800,10 +1871,10 @@ function FateAutomation:updateState(newState)
         [AutomationState.ProcessRetainers] = self.processRetainers,
         [AutomationState.GcTurnIn] = self.grandCompanyTurnIn,
         [AutomationState.SummonChocobo] = self.summonChocobo,
-        [AutomationState.AutoBuyGysahlGreens] = self.autoBuyGysahlGreens
+        [AutomationState.AutoBuyGysahlGreens] = self.autoBuyGysahlGreens,
     }
     ---@type fun(FateAutomation): StateFunction
-    local initFn = jTable[newState];
+    local initFn = jTable[newState]
     self.currentState.Dispose()
     self.currentState = initFn(self)
 end

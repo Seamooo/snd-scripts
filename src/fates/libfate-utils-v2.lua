@@ -2,7 +2,9 @@ require("libfate-data")
 
 ---logs source line number
 ---@return integer line number
-function __LINE__() return debug.getinfo(2, 'l').currentline end
+function __LINE__()
+    return debug.getinfo(2, "l").currentline
+end
 
 ---@generic T: {[string]: any}
 ---@param val T
@@ -11,12 +13,12 @@ function DbgTable(val)
     local firstElem = true
     for k, v in pairs(val) do
         if not firstElem then
-            rv = rv..", "
+            rv = rv .. ", "
         end
         firstElem = false
-        rv = rv.."{\""..k.."\": "..tostring(v).."}"
+        rv = rv .. '{"' .. k .. '": ' .. tostring(v) .. "}"
     end
-    rv = rv.."}"
+    rv = rv .. "}"
     return rv
 end
 
@@ -27,11 +29,11 @@ function StringifyArray(val)
     local rv = "{"
     for idx, x in ipairs(val) do
         if idx ~= 1 then
-            rv = rv..", "
+            rv = rv .. ", "
         end
-        rv = rv..tostring(x)
+        rv = rv .. tostring(x)
     end
-    rv = rv.."}"
+    rv = rv .. "}"
     return rv
 end
 
@@ -106,7 +108,6 @@ function GetDistanceToTargetFlat()
     end
 end
 
-
 ---@param vec3 System_Numerics_Vector3
 ---@return number
 function GetDistanceToPointFlat(vec3)
@@ -138,7 +139,7 @@ function RandomAdjustCoordinates(position, maxDistance)
 end
 
 function EorzeaTimeToUnixTime(eorzeaTime)
-    return eorzeaTime/(144/7) -- 24h Eorzea Time equals 70min IRL
+    return eorzeaTime / (144 / 7) -- 24h Eorzea Time equals 70min IRL
 end
 
 ---@param zoneId number
@@ -153,7 +154,7 @@ function GetAetherytesInZone(zoneId)
     return aetherytesInZone
 end
 
----@param aetheryte IAetheryteEntry 
+---@param aetheryte IAetheryteEntry
 ---@return string
 function GetAetheryteName(aetheryte)
     local name = aetheryte.AetheryteData.Value.PlaceName.Value.Name:GetText()
@@ -176,7 +177,7 @@ end
 ---@return boolean
 function InActiveFate()
     local activeFates = Fates.GetActiveFates()
-    for i=0, activeFates.Count-1 do
+    for i = 0, activeFates.Count - 1 do
         if activeFates[i].InFate == true and IsFateActive(activeFates[i]) then
             return true
         end
@@ -239,27 +240,25 @@ end
 -- TODO(seamooo) should make a preamble that loads below
 
 ---@type fun(obj: IGameObject):EntityWrapper
-EntityWrapper = load_type('SomethingNeedDoing.LuaMacro.Wrappers.EntityWrapper')
+EntityWrapper = load_type("SomethingNeedDoing.LuaMacro.Wrappers.EntityWrapper")
 
 ---@type ObjectKindEnum
-ObjectKind = load_type('Dalamud.Game.ClientState.Objects.Enums.ObjectKind')
+ObjectKind = load_type("Dalamud.Game.ClientState.Objects.Enums.ObjectKind")
 
 ---@type NameplateKindEnum
-NameplateKind = load_type('ECommons.GameFunctions.NameplateKind')
+NameplateKind = load_type("ECommons.GameFunctions.NameplateKind")
 
 function AttemptToTargetClosestFateEnemy()
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
-    for i=0, Svc.Objects.Length-1 do
+    for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and
-            not obj.IsDead and EntityWrapper(obj).FateId > 0
-        then
-                local dist = GetDistanceToPoint(obj.Position)
-                if dist < closestTargetDistance then
-                    closestTargetDistance = dist
-                    closestTarget = obj
-                end
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
         end
     end
     if closestTarget ~= nil then
@@ -283,7 +282,7 @@ end
 function AcceptTeleportOfferLocation(destinationAetheryte)
     if Addons.GetAddon("_NotificationTelepo").Ready then
         local location = GetNodeText("_NotificationTelepo", 3, 4)
-        yield("/callback _Notification true 0 16 "..location)
+        yield("/callback _Notification true 0 16 " .. location)
         yield("/wait 1")
     end
 
@@ -291,7 +290,10 @@ function AcceptTeleportOfferLocation(destinationAetheryte)
         local teleportOfferMessage = GetNodeText("SelectYesno", 1, 2)
         if type(teleportOfferMessage) == "string" then
             local teleportOfferLocation = teleportOfferMessage:match("Accept Teleport to (.+)%?")
-            if teleportOfferLocation ~= nil and string.lower(teleportOfferLocation) == string.lower(destinationAetheryte) then
+            if
+                teleportOfferLocation ~= nil
+                and string.lower(teleportOfferLocation) == string.lower(destinationAetheryte)
+            then
                 yield("/callback SelectYesno true 0") -- accept teleport
                 return
             end
@@ -323,7 +325,7 @@ function NewTeleportManager(timeout, logHook)
         local now = os.clock()
         if lastTeleportTimestamp == nil or now - lastTeleportTimestamp > 2 then
             -- below executes teleport and blocks until finished or timeout
-            yield("/li tp "..aetheryteName)
+            yield("/li tp " .. aetheryteName)
             yield("/wait 1")
             while Svc.Condition[CharacterCondition.casting] do
                 if os.clock() - now > timeoutConcrete then
@@ -367,7 +369,9 @@ end
 ---@param v System_Numerics_Vector2
 function Normalize(v)
     local len = v:Length()
-    if len == 0 then return v end
+    if len == 0 then
+        return v
+    end
     return v / len
 end
 
@@ -381,7 +385,7 @@ end
 ---@field aetheryteList AetheryteTable[]
 ---@field flying boolean
 
----@return ZoneFateInfoExt 
+---@return ZoneFateInfoExt
 function GetCurrentZone()
     local zoneInfo = nil
     local targetZoneId = Svc.ClientState.TerritoryType
@@ -396,13 +400,13 @@ function GetCurrentZone()
         zoneInfo = {
             zoneName = "",
             zoneId = targetZoneId,
-            fatesList= {
-                collectionsFates= {},
-                otherNpcFates= {},
-                bossFates= {},
-                blacklistedFates= {},
-                fatesWithContinuations = {}
-            }
+            fatesList = {
+                collectionsFates = {},
+                otherNpcFates = {},
+                bossFates = {},
+                blacklistedFates = {},
+                fatesWithContinuations = {},
+            },
         }
     end
     local flying = zoneInfo.flying
@@ -412,7 +416,7 @@ function GetCurrentZone()
         zoneId = zoneInfo.zoneId,
         fatesList = zoneInfo.fatesList,
         flying = flying == nil or flying,
-        aetheryteList = {}
+        aetheryteList = {},
     }
     local aetherytes = GetAetherytesInZone(zoneInfo.zoneId)
     for _, aetheryte in ipairs(aetherytes) do
@@ -421,7 +425,7 @@ function GetCurrentZone()
             name = GetAetheryteName(aetheryte),
             id = aetheryte.AetheryteId,
             position = aetherytePos,
-            aetheryteObj = aetheryte
+            aetheryteObj = aetheryte,
         }
         table.insert(rv.aetheryteList, aetheryteTable)
     end
@@ -448,7 +452,6 @@ function GetClosestAetheryte(position, teleportTimePenalty, zone)
     return rv
 end
 
-
 ---Returns the closest aetheryte if a teleport would be faster else nil
 ---@param position System_Numerics_Vector3
 ---@param teleportTimePenalty number yalms travelled during teleport cast
@@ -471,16 +474,14 @@ end
 function AttemptToTargetClosestFateEnemy()
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
-    for i=0, Svc.Objects.Length-1 do
+    for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and
-            not obj.IsDead and EntityWrapper(obj).FateId > 0
-        then
-                local dist = GetDistanceToPoint(obj.Position)
-                if dist < closestTargetDistance then
-                    closestTargetDistance = dist
-                    closestTarget = obj
-                end
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
         end
     end
     if closestTarget ~= nil then
@@ -531,7 +532,7 @@ function IsCollectionsFate(fateName, zone)
     return false
 end
 
----@param fate FateWrapper 
+---@param fate FateWrapper
 ---@return boolean
 function IsBossFate(fate)
     return fate.IconId == 60722
@@ -620,7 +621,7 @@ function BuildFateObjInfo(obj)
         maxHp = tpEntity.MaxHp,
         currHp = tpEntity.CurrentHp,
         kind = obj.ObjectKind,
-        name = tpEntity.Name
+        name = tpEntity.Name,
     }
 end
 
@@ -643,9 +644,7 @@ function TargetIdleFateMob(fate)
     local bestObjInfo = nil
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id then
             local info = BuildFateObjInfo(obj)
             if info.nameplateKind == NameplateKind.HostileNotEngaged and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.distance > info.distance then
@@ -702,10 +701,7 @@ function TargetFateAdds(fate)
     end
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
@@ -735,10 +731,7 @@ function TargetFateBoss(fate)
     end
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
@@ -787,10 +780,7 @@ function TargetClosestFateMob(fate)
     local bestObjInfo = nil
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if bestObjInfo == nil or bestObjInfo.distance > info.distance then
                 bestObjInfo = info
@@ -811,7 +801,7 @@ function HasStatusId(statusId)
     if statusList == nil then
         return false
     end
-    for i=0, statusList.Length-1 do
+    for i = 0, statusList.Length - 1 do
         if statusList[i].StatusId == statusId then
             return true
         end

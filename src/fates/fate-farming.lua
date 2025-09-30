@@ -237,19 +237,19 @@ This Plugins are Optional and not needed unless you have it enabled in the setti
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
 ]]
 
-require('libfate-utils')
+require("libfate-utils")
 
 --#region Main
 --- Fate state enum mapping (values confirmed from FFXIV SND)
 FateState = {
-    None       = 0,  -- no state / unknown
-    Preparing  = 1,  -- fate is setting up
-    Waiting    = 2,  -- waiting before spawn
-    Spawning   = 3,  -- mobs/NPCs spawning
-    Running    = 4,  -- fate active and in progress
-    Ending     = 5,  -- fate nearing completion
-    Ended      = 6,  -- fate finished successfully
-    Failed     = 7   -- fate failed
+    None = 0, -- no state / unknown
+    Preparing = 1, -- fate is setting up
+    Waiting = 2, -- waiting before spawn
+    Spawning = 3, -- mobs/NPCs spawning
+    Running = 4, -- fate active and in progress
+    Ending = 5, -- fate nearing completion
+    Ended = 6, -- fate finished successfully
+    Failed = 7, -- fate failed
 }
 
 -- Settings Area
@@ -270,38 +270,35 @@ FateState = {
 
 -- Retainer
 
-
-
-
 --Fate Combat
-CompletionToIgnoreFate          = Config.Get("Ignore FATE if progress is over (%)")
-MinTimeLeftToIgnoreFate         = Config.Get("Ignore FATE if duration is less than (mins)") * 60
-CompletionToJoinBossFate        = Config.Get("Ignore boss FATEs until progress is at least (%)")
+CompletionToIgnoreFate = Config.Get("Ignore FATE if progress is over (%)")
+MinTimeLeftToIgnoreFate = Config.Get("Ignore FATE if duration is less than (mins)") * 60
+CompletionToJoinBossFate = Config.Get("Ignore boss FATEs until progress is at least (%)")
 CompletionToJoinSpecialBossFates = Config.Get("Ignore Special FATEs until progress is at least (%)")
-JoinCollectionsFates            = Config.Get("Do collection FATEs?")
-BonusFatesOnly                  = Config.Get("Do only bonus FATEs?") --If true, will only do bonus fates and ignore everything else
-FatePriority                    = {"DistanceTeleport", "Progress", "Bonus", "TimeLeft", "Distance" }
-MeleeDist                       = Config.Get("Max melee distance")
-RangedDist                      = Config.Get("Max ranged distance")
-HitboxBuffer                    = 0.5
+JoinCollectionsFates = Config.Get("Do collection FATEs?")
+BonusFatesOnly = Config.Get("Do only bonus FATEs?") --If true, will only do bonus fates and ignore everything else
+FatePriority = { "DistanceTeleport", "Progress", "Bonus", "TimeLeft", "Distance" }
+MeleeDist = Config.Get("Max melee distance")
+RangedDist = Config.Get("Max ranged distance")
+HitboxBuffer = 0.5
 --ClassForBossFates                = ""            --If you want to use a different class for boss fates, set this to the 3 letter abbreviation
 
 -- Variable initialzization
-StopScript                      = false
-DidFate                         = false
-GemAnnouncementLock             = false
-DeathAnnouncementLock           = false
-MovingAnnouncementLock          = false
-SuccessiveInstanceChanges       = 0
-LastInstanceChangeTimestamp     = 0
-LastTeleportTimeStamp           = 0
-GotCollectionsFullCredit        = false
-WaitingForFateRewards           = nil
-LastFateEndTime                 = os.clock()
-LastStuckCheckTime              = os.clock()
-LastStuckCheckPosition          = Player.Entity.Position
-MainClass                       = Player.Job
-BossFatesClass                  = nil
+StopScript = false
+DidFate = false
+GemAnnouncementLock = false
+DeathAnnouncementLock = false
+MovingAnnouncementLock = false
+SuccessiveInstanceChanges = 0
+LastInstanceChangeTimestamp = 0
+LastTeleportTimeStamp = 0
+GotCollectionsFullCredit = false
+WaitingForFateRewards = nil
+LastFateEndTime = os.clock()
+LastStuckCheckTime = os.clock()
+LastStuckCheckPosition = Player.Entity.Position
+MainClass = Player.Job
+BossFatesClass = nil
 
 --Forlorns
 IgnoreForlorns = false
@@ -336,16 +333,16 @@ elseif configRotationPlugin == "bossmod" and HasPlugin("BossMod") then
 else
     StopScript = true
 end
-RSRAoeType                 = "Full"      --Options: Cleave/Full/Off
+RSRAoeType = "Full" --Options: Cleave/Full/Off
 
 -- For BMR/VBM/Wrath rotation plugins
-RotationSingleTargetPreset      = Config.Get("Single Target Rotation") --Preset name with single target strategies (for forlorns). TURN OFF AUTOMATIC TARGETING FOR THIS PRESET
-RotationAoePreset               = Config.Get("AoE Rotation")           --Preset with AOE + Buff strategies.
-RotationHoldBuffPreset          = Config.Get("Hold Buff Rotation")     --Preset to hold 2min burst when progress gets to seleted %
-PercentageToHoldBuff            = Config.Get("Percentage to Hold Buff")--Ideally youll want to make full use of your buffs, higher than 70% will still waste a few seconds if progress is too fast.
+RotationSingleTargetPreset = Config.Get("Single Target Rotation") --Preset name with single target strategies (for forlorns). TURN OFF AUTOMATIC TARGETING FOR THIS PRESET
+RotationAoePreset = Config.Get("AoE Rotation") --Preset with AOE + Buff strategies.
+RotationHoldBuffPreset = Config.Get("Hold Buff Rotation") --Preset to hold 2min burst when progress gets to seleted %
+PercentageToHoldBuff = Config.Get("Percentage to Hold Buff") --Ideally youll want to make full use of your buffs, higher than 70% will still waste a few seconds if progress is too fast.
 
 -- Dodge plugin
-local dodgeConfig = string.lower(Config.Get("Dodging Plugin"))  -- Options: Any / BossModReborn / BossMod / None
+local dodgeConfig = string.lower(Config.Get("Dodging Plugin")) -- Options: Any / BossModReborn / BossMod / None
 
 -- Resolve "any" or specific plugin if available
 if dodgeConfig == "any" then
@@ -374,44 +371,49 @@ end
 -- Final warning if no dodging plugin is active
 if DodgingPlugin == "None" then
     yield(
-    "/echo [FATE] Warning: you do not have an AI dodging plugin configured, so your character will stand in AOEs. Please install either Veyn's BossMod or BossMod Reborn")
+        "/echo [FATE] Warning: you do not have an AI dodging plugin configured, so your character will stand in AOEs. Please install either Veyn's BossMod or BossMod Reborn"
+    )
 end
 
 --Post Fate Settings
-MinWait                        = 3          --Min number of seconds it should wait until mounting up for next fate.
-MaxWait                        = 10         --Max number of seconds it should wait until mounting up for next fate.
-    --Actual wait time will be a randomly generated number between MinWait and MaxWait.
-DownTimeWaitAtNearestAetheryte = false      --When waiting for fates to pop, should you fly to the nearest Aetheryte and wait there?
-MoveToRandomSpot               = false      --Randomly fly to spot while waiting on fate.
-InventorySlotsLeft             = 5          --how much inventory space before turning in
-WaitIfBonusBuff                = true       --Dont change instances if you have the Twist of Fate bonus buff
-NumberOfInstances              = 2
-RemainingDurabilityToRepair    = 10         --the amount it needs to drop before Repairing (set it to 0 if you don't want it to repair)
-ShouldAutoBuyDarkMatter        = true       --Automatically buys a 99 stack of Grade 8 Dark Matter from the Limsa gil vendor if you're out
-ShouldExtractMateria           = true       --should it Extract Materia
+MinWait = 3 --Min number of seconds it should wait until mounting up for next fate.
+MaxWait = 10 --Max number of seconds it should wait until mounting up for next fate.
+--Actual wait time will be a randomly generated number between MinWait and MaxWait.
+DownTimeWaitAtNearestAetheryte = false --When waiting for fates to pop, should you fly to the nearest Aetheryte and wait there?
+MoveToRandomSpot = false --Randomly fly to spot while waiting on fate.
+InventorySlotsLeft = 5 --how much inventory space before turning in
+WaitIfBonusBuff = true --Dont change instances if you have the Twist of Fate bonus buff
+NumberOfInstances = 2
+RemainingDurabilityToRepair = 10 --the amount it needs to drop before Repairing (set it to 0 if you don't want it to repair)
+ShouldAutoBuyDarkMatter = true --Automatically buys a 99 stack of Grade 8 Dark Matter from the Limsa gil vendor if you're out
+ShouldExtractMateria = true --should it Extract Materia
 
 -- Config settings
-EnableChangeInstance           = Config.Get("Change instances if no FATEs?")
+EnableChangeInstance = Config.Get("Change instances if no FATEs?")
 ShouldExchangeBicolorGemstones = Config.Get("Exchange bicolor gemstones?")
-ItemToPurchase                 = Config.Get("Exchange bicolor gemstones for")
+ItemToPurchase = Config.Get("Exchange bicolor gemstones for")
 if ItemToPurchase == "None" then
     ShouldExchangeBicolorGemstones = false
 end
-ReturnOnDeath                   = Config.Get("Return on death?")
-SelfRepair                      = Config.Get("Self repair?")
-Retainers                       = Config.Get("Pause for retainers?")
-ShouldGrandCompanyTurnIn        = Config.Get("Dump extra gear at GC?")
-Echo                            = string.lower(Config.Get("Echo logs"))
+ReturnOnDeath = Config.Get("Return on death?")
+SelfRepair = Config.Get("Self repair?")
+Retainers = Config.Get("Pause for retainers?")
+ShouldGrandCompanyTurnIn = Config.Get("Dump extra gear at GC?")
+Echo = string.lower(Config.Get("Echo logs"))
 
 -- Plugin warnings
 if Retainers and not HasPlugin("AutoRetainer") then
     Retainers = false
-    yield("/echo [FATE] Warning: you have enabled the feature to process retainers, but you do not have AutoRetainer installed.")
+    yield(
+        "/echo [FATE] Warning: you have enabled the feature to process retainers, but you do not have AutoRetainer installed."
+    )
 end
 
 if ShouldGrandCompanyTurnIn and not HasPlugin("AutoRetainer") then
     ShouldGrandCompanyTurnIn = false
-    yield("/echo [FATE] Warning: you have enabled the feature to process GC turn ins, but you do not have AutoRetainer installed.")
+    yield(
+        "/echo [FATE] Warning: you have enabled the feature to process GC turn ins, but you do not have AutoRetainer installed."
+    )
 end
 
 -- Enable Auto Advance plugin
@@ -424,9 +426,9 @@ SetMaxDistance()
 --Set selected zone
 SelectedZone = SelectNextZone()
 if SelectedZone.zoneName ~= "" and Echo == "all" then
-    yield("/echo [FATE] Farming "..SelectedZone.zoneName)
+    yield("/echo [FATE] Farming " .. SelectedZone.zoneName)
 end
-Dalamud.Log("[FATE] Farming Start for "..SelectedZone.zoneName)
+Dalamud.Log("[FATE] Farming Start for " .. SelectedZone.zoneName)
 
 if ShouldExchangeBicolorGemstones ~= false then
     for _, shop in ipairs(BicolorExchangeData) do
@@ -438,13 +440,17 @@ if ShouldExchangeBicolorGemstones ~= false then
                     aetheryteName = shop.aetheryteName,
                     miniAethernet = shop.miniAethernet,
                     position = shop.position,
-                    item = item
+                    item = item,
                 }
             end
         end
     end
     if SelectedBicolorExchangeData == nil then
-        yield("/echo [FATE] Cannot recognize bicolor shop item "..ItemToPurchase.."! Please make sure it's in the BicolorExchangeData table!")
+        yield(
+            "/echo [FATE] Cannot recognize bicolor shop item "
+                .. ItemToPurchase
+                .. "! Please make sure it's in the BicolorExchangeData table!"
+        )
         StopScript = true
     end
 end
@@ -454,7 +460,7 @@ if InActiveFate() then
 end
 
 if ShouldSummonChocobo and GetBuddyTimeRemaining() > 0 then
-    yield('/cac "'..ChocoboStance..' stance"')
+    yield('/cac "' .. ChocoboStance .. ' stance"')
 end
 
 function WaitForContinuationClosure()
@@ -462,27 +468,27 @@ function WaitForContinuationClosure()
 end
 
 CharacterState = {
-    ready                   = Ready,
-    dead                    = HandleDeath,
-    unexpectedCombat        = HandleUnexpectedCombat,
-    mounting                = MountState,
-    npcDismount             = NpcDismount,
-    MiddleOfFateDismount    = MiddleOfFateDismount,
-    moveToFate              = MoveToFate,
-    interactWithNpc         = InteractWithFateNpc,
-    collectionsFateTurnIn   = CollectionsFateTurnIn,
-    doFate                  = DoFate,
-    waitForContinuation     = WaitForContinuationClosure,
-    changingInstances       = ChangeInstance,
-    changeInstanceDismount  = ChangeInstanceDismount,
-    flyBackToAetheryte      = FlyBackToAetheryte,
-    extractMateria          = ExtractMateria,
-    repair                  = Repair,
-    exchangingVouchers      = ExecuteBicolorExchange,
-    processRetainers        = ProcessRetainers,
-    gcTurnIn                = GrandCompanyTurnIn,
-    summonChocobo           = SummonChocobo,
-    autoBuyGysahlGreens     = AutoBuyGysahlGreens
+    ready = Ready,
+    dead = HandleDeath,
+    unexpectedCombat = HandleUnexpectedCombat,
+    mounting = MountState,
+    npcDismount = NpcDismount,
+    MiddleOfFateDismount = MiddleOfFateDismount,
+    moveToFate = MoveToFate,
+    interactWithNpc = InteractWithFateNpc,
+    collectionsFateTurnIn = CollectionsFateTurnIn,
+    doFate = DoFate,
+    waitForContinuation = WaitForContinuationClosure,
+    changingInstances = ChangeInstance,
+    changeInstanceDismount = ChangeInstanceDismount,
+    flyBackToAetheryte = FlyBackToAetheryte,
+    extractMateria = ExtractMateria,
+    repair = Repair,
+    exchangingVouchers = ExecuteBicolorExchange,
+    processRetainers = ProcessRetainers,
+    gcTurnIn = GrandCompanyTurnIn,
+    summonChocobo = SummonChocobo,
+    autoBuyGysahlGreens = AutoBuyGysahlGreens,
 }
 
 Dalamud.Log("[FATE] Starting fate farming script.")
@@ -503,14 +509,15 @@ while not StopScript do
         State = CharacterState.dead
         Dalamud.Log("[FATE] State Change: Dead")
     elseif not Player.IsMoving then
-        if State ~= CharacterState.unexpectedCombat
-        and State ~= CharacterState.doFate
-        and State ~= CharacterState.waitForContinuation
-        and State ~= CharacterState.collectionsFateTurnIn
-        and Svc.Condition[CharacterCondition.inCombat]
-        and (
-            not InActiveFate()
-            or (InActiveFate() and IsCollectionsFate(nearestFate.Name) and nearestFate.Progress == 100)
+        if
+            State ~= CharacterState.unexpectedCombat
+            and State ~= CharacterState.doFate
+            and State ~= CharacterState.waitForContinuation
+            and State ~= CharacterState.collectionsFateTurnIn
+            and Svc.Condition[CharacterCondition.inCombat]
+            and (
+                not InActiveFate()
+                or (InActiveFate() and IsCollectionsFate(nearestFate.Name) and nearestFate.Progress == 100)
             )
         then
             State = CharacterState.unexpectedCombat
@@ -522,37 +529,51 @@ while not StopScript do
 
     if WaitingForFateRewards ~= nil then
         local state = WaitingForFateRewards.fateObject and WaitingForFateRewards.fateObject.State or nil
-        if WaitingForFateRewards.fateObject == nil
+        if
+            WaitingForFateRewards.fateObject == nil
             or state == nil
             or state == FateState.Ended
             or state == FateState.Failed
         then
-            local msg = "[FATE] WaitingForFateRewards.fateObject is nil or fate state ("..tostring(state)..") indicates fate is finished for fateId: "..tostring(WaitingForFateRewards.fateId)..". Clearing it."
+            local msg = "[FATE] WaitingForFateRewards.fateObject is nil or fate state ("
+                .. tostring(state)
+                .. ") indicates fate is finished for fateId: "
+                .. tostring(WaitingForFateRewards.fateId)
+                .. ". Clearing it."
             Dalamud.Log(msg)
             if Echo == "all" then
-                yield("/echo "..msg)
+                yield("/echo " .. msg)
             end
             WaitingForFateRewards = nil
         else
-            local msg = "[FATE] Not clearing WaitingForFateRewards: fate state="..tostring(state)..", expected one of [Ended: "..tostring(FateState.Ended)..", Failed: "..tostring(FateState.Failed).."] or nil."
+            local msg = "[FATE] Not clearing WaitingForFateRewards: fate state="
+                .. tostring(state)
+                .. ", expected one of [Ended: "
+                .. tostring(FateState.Ended)
+                .. ", Failed: "
+                .. tostring(FateState.Failed)
+                .. "] or nil."
             Dalamud.Log(msg)
             if Echo == "all" then
-                yield("/echo "..msg)
+                yield("/echo " .. msg)
             end
         end
     end
-    if not (Svc.Condition[CharacterCondition.betweenAreas]
-        or Svc.Condition[CharacterCondition.occupiedMateriaExtractionAndRepair]
-        or IPC.Lifestream.IsBusy())
-        then
-            State()
+    if
+        not (
+            Svc.Condition[CharacterCondition.betweenAreas]
+            or Svc.Condition[CharacterCondition.occupiedMateriaExtractionAndRepair]
+            or IPC.Lifestream.IsBusy()
+        )
+    then
+        State()
     end
     yield("/wait 0.25")
 end
 yield("/vnav stop")
 
 if Player.Job.Id ~= MainClass.Id then
-    yield("/gs change "..MainClass.Name)
+    yield("/gs change " .. MainClass.Name)
 end
 
 yield("/echo [Fate] Loop Ended !!")

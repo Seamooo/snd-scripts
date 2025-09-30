@@ -17,14 +17,14 @@ Result.__index = {}
 ---@param val T
 ---@return Result<T,E>
 function Result.Ok(val)
-    return setmetatable({status = ResultStatus.Ok, val=val}, Result)
+    return setmetatable({ status = ResultStatus.Ok, val = val }, Result)
 end
 
 ---@generic T,E
 ---@param val E
 ---@return Result<T,E>
 function Result.Err(val)
-    return setmetatable({status = ResultStatus.Err, val=val}, Result)
+    return setmetatable({ status = ResultStatus.Err, val = val }, Result)
 end
 
 ---@generic T,E
@@ -32,7 +32,7 @@ end
 ---@return T
 function Result:unwrap()
     if self.status == ResultStatus.Err then
-        error("unwrapped error: "..tostring(self.val), 2)
+        error("unwrapped error: " .. tostring(self.val), 2)
     end
     return self.val
 end
@@ -56,7 +56,7 @@ function Result:map(f)
     if self.status == ResultStatus.Err then
         return self
     end
-    return setmetatable({status = ResultStatus.Ok, val=f(self.val)}, Result)
+    return setmetatable({ status = ResultStatus.Ok, val = f(self.val) }, Result)
 end
 
 ---@generic T,E

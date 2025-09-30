@@ -242,6 +242,7 @@ local function main()
 end
 
 main()
+
 end)
 __bundle_register("libfate-automation", function(require, _LOADED, __bundle_register, __bundle_modules)
 require("libfate-data")
@@ -422,11 +423,10 @@ end
 -- add types until mutual exclusivity is met (hopefully very limited subset
 -- of the powerset in the worst case)
 
-
 ---@class CollectionsFateCtx
 ---@field haveMaxCredit boolean
 
----@class FateTable 
+---@class FateTable
 ---@field fateObject FateWrapper
 ---@field fateId number
 ---@field fateName string
@@ -524,28 +524,28 @@ local Cmp = {
 -- enforce
 ---@enum AutomationState
 local AutomationState = {
-    Init                    = 0,
-    Ready                   = 1,
-    Dead                    = 2,
-    UnexpectedCombat        = 3,
-    Mounting                = 4,
-    NpcDismount             = 5,
-    MiddleOfFateDismount    = 6,
-    MoveToFate              = 7,
-    InteractWithNpc         = 8,
-    CollectionsFateTurnIn   = 9,
-    DoFate                  = 10,
-    WaitForContinuation     = 11,
-    ChangingInstances       = 12,
-    ChangeInstanceDismount  = 13,
-    FlyBackToAetheryte      = 14,
-    ExtractMateria          = 15,
-    Repair                  = 16,
-    ExchangingVouchers      = 17,
-    ProcessRetainers        = 18,
-    GcTurnIn                = 19,
-    SummonChocobo           = 20,
-    AutoBuyGysahlGreens     = 21
+    Init = 0,
+    Ready = 1,
+    Dead = 2,
+    UnexpectedCombat = 3,
+    Mounting = 4,
+    NpcDismount = 5,
+    MiddleOfFateDismount = 6,
+    MoveToFate = 7,
+    InteractWithNpc = 8,
+    CollectionsFateTurnIn = 9,
+    DoFate = 10,
+    WaitForContinuation = 11,
+    ChangingInstances = 12,
+    ChangeInstanceDismount = 13,
+    FlyBackToAetheryte = 14,
+    ExtractMateria = 15,
+    Repair = 16,
+    ExchangingVouchers = 17,
+    ProcessRetainers = 18,
+    GcTurnIn = 19,
+    SummonChocobo = 20,
+    AutoBuyGysahlGreens = 21,
 }
 
 ---@class IDisposable
@@ -557,7 +557,7 @@ local AutomationState = {
 ---@class FateAutomation
 ---@field Config FateAutomationConfig
 ---@field private currentFate FateTable?
----@field private currentState StateFunction 
+---@field private currentState StateFunction
 ---@field private currentZone ZoneFateInfoExt?
 ---@field private combatModsOn boolean
 ---@field private teleportManager (fun(aetheryteName: string): boolean)?
@@ -575,21 +575,21 @@ function FateAutomation.new(Config)
         combatModsOn = false,
         teleportManager = nil,
     }, FateAutomation)
-    rv:updateState(AutomationState.Init);
+    rv:updateState(AutomationState.Init)
     return rv
 end
 
 ---@private
 function FateAutomation:foodCheck()
     if not HasStatusId(48) and self.Config.Food ~= nil and self.Config.Food ~= "" then
-        yield("/item "..self.Config.Food)
+        yield("/item " .. self.Config.Food)
     end
 end
 
 ---@private
 function FateAutomation:potCheck()
     if not HasStatusId(49) and self.Config.Potion ~= nil and self.Config.Potion ~= "" then
-        yield("/item "..self.Config.Potion)
+        yield("/item " .. self.Config.Potion)
     end
 end
 
@@ -619,7 +619,7 @@ function FateAutomation:turnOnCombatMods(force)
             yield("/bmrai on")
             yield("/bmrai followtarget on")
             yield("/bmrai followcombat on")
-            yield("/bmrai maxdistancetarget "..MAX_DISTANCE)
+            yield("/bmrai maxdistancetarget " .. MAX_DISTANCE)
             yield("/bmrai followoutofcombat on ")
         elseif dodgingConfig.DodgingPluginKind == "BossMod" then
             -- ensure autotargetting is off
@@ -643,7 +643,9 @@ function FateAutomation:turnOffCombatMods(force)
         elseif self.Config.RotationPlugin.RotationPluginKind == "Wrath" then
             yield("/wrath auto off")
         end
-        if self.Config.DodgingPlugin == nil then return end
+        if self.Config.DodgingPlugin == nil then
+            return
+        end
         if self.Config.DodgingPlugin.DodgingPluginKind == "BossModReborn" then
             yield("/bmrai off")
             yield("/bmrai followtarget off")
@@ -664,7 +666,7 @@ function FateAutomation:init()
             local requiredPlugins = {
                 "TextAdvance",
                 "vnavmesh",
-                "Lifestream"
+                "Lifestream",
             }
             local needBossMod = (
                 self.Config.DodgingPlugin ~= nil
@@ -676,7 +678,9 @@ function FateAutomation:init()
             ) or self.Config.RotationPlugin.RotationPluginKind == "BossModReborn"
             if needBossMod and needBossModReborn then
                 -- TODO(seamooo) error text for this would be good
-                yield("/echo BossMod and BossModReborn are incompatible, ensure your configuration only uses at most one")
+                yield(
+                    "/echo BossMod and BossModReborn are incompatible, ensure your configuration only uses at most one"
+                )
                 self:log(tostring(debug.traceback()))
                 error("enabled both bossmod and bossmodreborn in config", 2)
             end
@@ -692,28 +696,27 @@ function FateAutomation:init()
             if self.Config.RotationPlugin.RotationPluginKind == "RotationSolver" then
                 table.insert(requiredPlugins, "RotationSolver")
             end
-            self:log("configuration requires "..StringifyArray(requiredPlugins))
+            self:log("configuration requires " .. StringifyArray(requiredPlugins))
             local missingPlugins = false
             for _, plugin in ipairs(requiredPlugins) do
                 if not HasPlugin(plugin) then
                     missingPlugins = true
-                    yield("/echo missing "..plugin)
-                    self:log("missing "..plugin)
+                    yield("/echo missing " .. plugin)
+                    self:log("missing " .. plugin)
                 end
             end
-            if(missingPlugins) then
+            if missingPlugins then
                 error("some required plugins were missing, check logs for details")
             end
             TurnOnTextAdvance()
-            self.turnOffCombatMods(self, true);
-            self.currentZone = GetCurrentZone();
-            self.teleportManager = NewTeleportManager(
-                60,
-                function(message) self:logDebug(message) end
-            )
+            self.turnOffCombatMods(self, true)
+            self.currentZone = GetCurrentZone()
+            self.teleportManager = NewTeleportManager(60, function(message)
+                self:logDebug(message)
+            end)
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -731,13 +734,12 @@ function FateAutomation:ready()
 
             local shouldWaitForBonusBuff = (
                 self.Config.EnableWaitIfBonusBuff
-                and (
-                    HasStatusId(TWISTOFFATE_FORLORN_STATUS_ID)
-                    or HasStatusId(TWISTOFFATE_MAIDEN_STATUS_ID)
-                )
+                and (HasStatusId(TWISTOFFATE_FORLORN_STATUS_ID) or HasStatusId(TWISTOFFATE_MAIDEN_STATUS_ID))
             )
-            local needsRepair = self.Config.RepairPercent ~= nil and Inventory.GetItemsInNeedOfRepairs(self.Config.RepairPercent).Count > 0
-            local needsMateriaExtract = self.Config.EnableAutoExtractMateria and Inventory.GetSpiritbondedItems().Count > 0
+            local needsRepair = self.Config.RepairPercent ~= nil
+                and Inventory.GetItemsInNeedOfRepairs(self.Config.RepairPercent).Count > 0
+            local needsMateriaExtract = self.Config.EnableAutoExtractMateria
+                and Inventory.GetSpiritbondedItems().Count > 0
 
             -- TODO(seamooo) implement gem turn in here
 
@@ -757,12 +759,14 @@ function FateAutomation:ready()
 
             -- TODO(seamooo) implement process retainers / gc turnin here
 
-            if self.Config.ChocoboStance ~= nil
+            if
+                self.Config.ChocoboStance ~= nil
                 and GetBuddyTimeRemaining() <= self.Config.ResummonChocoboTimeLeft
                 and (
                     (not shouldWaitForBonusBuff and self.Config.EnableAutoBuyGysahlGreens)
                     or Inventory.GetItemCount(GYSAHLGREENS_ITEMID) > 0
-                ) then
+                )
+            then
                 self:updateState(AutomationState.SummonChocobo)
                 return
             end
@@ -780,9 +784,8 @@ function FateAutomation:ready()
                 SetMapFlag(self.currentZone.zoneId, self.currentFate.position)
                 self:updateState(AutomationState.MoveToFate)
             end
-
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -806,7 +809,7 @@ function FateAutomation:handleDeath()
                 self:updateState(AutomationState.Ready)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -822,7 +825,7 @@ local function tryDismount(disableFly)
         ---@type boolean
         local isFlying = Svc.Condition[CharacterCondition.flying]
         if isFlying then
-            yield('/ac dismount')
+            yield("/ac dismount")
             local now = os.clock()
             if lastStuckCheckTime == nil or lastStuckCheckTime - now >= 0.3 then
                 local random = RandomAdjustCoordinates(Svc.ClientState.LocalPlayer.Position, 10)
@@ -898,24 +901,23 @@ function FateAutomation:handleUnexpectedCombat()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
 ---@private
 function FateAutomation:mount()
     -- TODO(seamooo) rethink mount config here
-    if Svc.Condition[CharacterCondition.casting] then 
+    if Svc.Condition[CharacterCondition.casting] then
         -- wait for mount cast to complete
         return
     end
     if self.Config.MountToUse == "mount roulette" then
         yield('/gaction "mount roulette"')
     else
-        yield('/mount "'..self.Config.MountToUse..'"')
+        yield('/mount "' .. self.Config.MountToUse .. '"')
     end
 end
-
 
 ---@private
 ---@return StateFunction
@@ -928,7 +930,7 @@ function FateAutomation:mountState()
             end
             self:mount()
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -944,7 +946,7 @@ function FateAutomation:npcDismount()
             end
             self:updateState(AutomationState.InteractWithNpc)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -984,7 +986,7 @@ function FateAutomation:middleOfFateDismount()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1010,9 +1012,13 @@ local FateCriteriaPrio = {
 ---@param a number
 ---@param b number
 ---@return Cmp
-local function cmpNumber(a,b)
-    if a < b then return Cmp.Lt end
-    if a > b then return Cmp.Gt end
+local function cmpNumber(a, b)
+    if a < b then
+        return Cmp.Lt
+    end
+    if a > b then
+        return Cmp.Gt
+    end
     return Cmp.Eq
 end
 
@@ -1020,9 +1026,13 @@ end
 ---@param a boolean
 ---@param b boolean
 ---@return Cmp
-local function cmpBoolean(a,b)
-    if ~a and b then return Cmp.Lt end
-    if a and ~b then return Cmp.Gt end
+local function cmpBoolean(a, b)
+    if ~a and b then
+        return Cmp.Lt
+    end
+    if a and ~b then
+        return Cmp.Gt
+    end
     return Cmp.Eq
 end
 
@@ -1064,9 +1074,9 @@ function FateAutomation:fateCmp(fateA, fateB)
         end,
     }
     for _, criteria in pairs(FateCriteriaPrio) do
-        local cmpFn = comparisons[criteria];
+        local cmpFn = comparisons[criteria]
         if cmpFn ~= nil then
-            local cmpResult = cmpFn();
+            local cmpResult = cmpFn()
             if cmpResult ~= Cmp.Eq then
                 return cmpResult
             end
@@ -1084,22 +1094,25 @@ function FateAutomation:selectNextFate()
     end
     ---@type FateTable[]
     local filteredFates = {}
-    for i = 0, fates.Count-1 do
+    for i = 0, fates.Count - 1 do
         local tpFate = BuildFateTable(fates[i], self.currentZone)
-        if (tpFate.position.X == 0 and tpFate.position.Z == 0) then
-            self:logDebug("Found fate with zero coords ("..tpFate.fateName.."). Skipping..")
+        if tpFate.position.X == 0 and tpFate.position.Z == 0 then
+            self:logDebug("Found fate with zero coords (" .. tpFate.fateName .. "). Skipping..")
         elseif tpFate.isBlacklistedFate then
-            self:logDebug("found blacklisted fate ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate:isBossFate() and (
-                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate) or
-                (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
-            ) then
-            self:logDebug("Boss fate is not at required completion percent ("..tpFate.fateName.."). Skipping..")
-        elseif tpFate.duration == 0 and not (
-            (
-                tpFate.isOtherNpcFate or tpFate.isCollectionsFate
-            ) and tpFate.startTime == 0) then
-            self:logDebug("Found fate with duration zero ("..tpFate.fateName.."). Skipping..")
+            self:logDebug("found blacklisted fate (" .. tpFate.fateName .. "). Skipping..")
+        elseif
+            tpFate:isBossFate()
+            and (
+                (tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinSpecialBossFate)
+                or (not tpFate:isSpecialFate() and tpFate.fateObject.Progress < self.Config.CompletionToJoinBossFate)
+            )
+        then
+            self:logDebug("Boss fate is not at required completion percent (" .. tpFate.fateName .. "). Skipping..")
+        elseif
+            tpFate.duration == 0
+            and not ((tpFate.isOtherNpcFate or tpFate.isCollectionsFate) and tpFate.startTime == 0)
+        then
+            self:logDebug("Found fate with duration zero (" .. tpFate.fateName .. "). Skipping..")
         else
             -- filtered elements here
             table.insert(filteredFates, tpFate)
@@ -1108,7 +1121,7 @@ function FateAutomation:selectNextFate()
     ---@type FateTable?
     local rv = nil
     for _, fateTable in pairs(filteredFates) do
-        if rv == nil or self:fateCmp(rv,fateTable) == Cmp.Lt then
+        if rv == nil or self:fateCmp(rv, fateTable) == Cmp.Lt then
             rv = fateTable
         end
     end
@@ -1136,7 +1149,7 @@ local function newAntiStuckChecker(disableFly)
                 return
             end
             if GetDistanceToPoint(lastStuckCheckPosition) < 3 then
-                local newPos = Svc.ClientState.LocalPlayer.Position + Vector3(0,10,0)
+                local newPos = Svc.ClientState.LocalPlayer.Position + Vector3(0, 10, 0)
                 -- TODO(seamooo) debug semantics of this movement
                 yield("/vnav stop")
                 yield("/wait 0.5")
@@ -1153,7 +1166,7 @@ end
 ---@return boolean
 function FateAutomation:teleportToClosestAetheryteToFate(nextFate)
     local aetheryteForClosestFate = GetClosestAetheryteToPoint(nextFate.position, 200, self.currentZone)
-    if aetheryteForClosestFate ~=nil then
+    if aetheryteForClosestFate ~= nil then
         yield("/vnav stop")
         return self.teleportManager(aetheryteForClosestFate.name)
     end
@@ -1201,10 +1214,10 @@ function FateAutomation:moveToFate()
             if self.Config.BossFatesJob ~= nil then
                 local currentJob = Player.Job.Id
                 if self.currentFate:isBossFate() and currentJob ~= self.Config.BossFatesJob.Id then
-                    yield("/gs change"..self.Config.BossFatesJob.Name)
+                    yield("/gs change" .. self.Config.BossFatesJob.Name)
                     return
                 elseif not self.currentFate:isBossFate() and currentJob ~= self.Config.MainJob.Id then
-                    yield("/gs change"..self.Config.MainJob.Name)
+                    yield("/gs change" .. self.Config.MainJob.Name)
                     return
                 end
             end
@@ -1212,15 +1225,21 @@ function FateAutomation:moveToFate()
             -- target an npc/enemy when close to fate and path to them
             if GetDistanceToPoint(self.currentFate.position) < 60 then
                 if Svc.Targets.Target == nil then
-                    if (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate()) and not InActiveFate() then
-                        yield("/target "..self.currentFate.npcName)
+                    if
+                        (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate())
+                        and not InActiveFate()
+                    then
+                        yield("/target " .. self.currentFate.npcName)
                     else
                         AttemptToTargetClosestFateEnemy()
                     end
                     -- TODO(seamooo) may need a wait here for stability
                     return
                 else
-                    if (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate()) and not InActiveFate() then
+                    if
+                        (self.currentFate:isOtherNpcFate() or self.currentFate:isCollectionsFate())
+                        and not InActiveFate()
+                    then
                         self:updateState(AutomationState.InteractWithNpc)
                         return
                     else
@@ -1231,7 +1250,10 @@ function FateAutomation:moveToFate()
             end
 
             -- antistuck
-            if (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()) and Svc.Condition[CharacterCondition.mounted] then
+            if
+                (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress())
+                and Svc.Condition[CharacterCondition.mounted]
+            then
                 antiStuckChecker()
             end
 
@@ -1265,7 +1287,7 @@ function FateAutomation:moveToFate()
                 return
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1292,8 +1314,8 @@ function FateAutomation:interactWithFateNpc()
                 return
             else
                 -- target npc, not changing if already selected
-                if(Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName) then
-                    yield("/target "..self.currentFate.npcName)
+                if Svc.Targets.Target == nil or GetTargetName() ~= self.currentFate.npcName then
+                    yield("/target " .. self.currentFate.npcName)
                 end
                 if Svc.Condition[CharacterCondition.mounted] then
                     self:updateState(AutomationState.NpcDismount)
@@ -1315,7 +1337,7 @@ function FateAutomation:interactWithFateNpc()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1338,11 +1360,11 @@ function FateAutomation:collectionsFateTurnIn()
                 self:updateState(AutomationState.Ready)
                 return
             end
-            if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
+            if Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName then
                 self:turnOffCombatMods()
-                yield("/target "..currentFate.npcName)
+                yield("/target " .. currentFate.npcName)
                 -- potential wait here for stability
-                if (Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName) then
+                if Svc.Targets.Target == nil or GetTargetName() ~= currentFate.npcName then
                     if not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) then
                         IPC.vnavmesh.PathfindAndMoveTo(currentFate.position, false)
                     end
@@ -1370,7 +1392,7 @@ function FateAutomation:collectionsFateTurnIn()
                 self:updateState(AutomationState.UnexpectedCombat)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1463,12 +1485,18 @@ function FateAutomation:moveToTargetHitbox()
     local playerPos = Svc.ClientState.LocalPlayer.Position
     local targetPos = Svc.Targets.Target.Position
     local distance = GetDistanceToTarget()
-    if distance == 0 then return end
+    if distance == 0 then
+        return
+    end
     local desiredRange = math.max(0.1, GetTargetHitboxRadius() + GetPlayerHitboxRadius() + MAX_DISTANCE)
     local STOP_EPS = 0.15
-    if distance <= (desiredRange + STOP_EPS) then return end
+    if distance <= (desiredRange + STOP_EPS) then
+        return
+    end
     local dir = Normalize(playerPos - targetPos)
-    if dir:Length() == 0 then return end
+    if dir:Length() == 0 then
+        return
+    end
     local ideal = targetPos + (dir * desiredRange)
     local newPos = IPC.vnavmesh.PointOnFloor(ideal, false, 1.5) or ideal
     IPC.vnavmesh.PathfindAndMoveTo(newPos, false)
@@ -1484,13 +1512,23 @@ function FateAutomation:doFate()
     ---@type { [FateTargetEntity]: fun(): boolean }
     local targetJmpTable = {
         [FateTargetEntity.Battle] = TargetBattle,
-        [FateTargetEntity.IdleFateMob] = function() return TargetIdleFateMob(self.currentFate.fateObject) end,
-        [FateTargetEntity.Gatherables] = function() return TargetFateGatherable(self.currentFate.fateObject) end,
-        [FateTargetEntity.Adds] = function() return TargetFateAdds(self.currentFate.fateObject) end,
-        [FateTargetEntity.Boss] = function() return TargetFateBoss(self.currentFate.fateObject) end,
+        [FateTargetEntity.IdleFateMob] = function()
+            return TargetIdleFateMob(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Gatherables] = function()
+            return TargetFateGatherable(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Adds] = function()
+            return TargetFateAdds(self.currentFate.fateObject)
+        end,
+        [FateTargetEntity.Boss] = function()
+            return TargetFateBoss(self.currentFate.fateObject)
+        end,
         [FateTargetEntity.ForlornMaiden] = TargetForlornMaiden,
         [FateTargetEntity.Forlorn] = TargetForlorn,
-        [FateTargetEntity.ClosestFateMob] = function() return TargetClosestFateMob(self.currentFate.fateObject) end,
+        [FateTargetEntity.ClosestFateMob] = function()
+            return TargetClosestFateMob(self.currentFate.fateObject)
+        end,
     }
     return {
         Exec = function()
@@ -1499,28 +1537,36 @@ function FateAutomation:doFate()
                 self:updateState(AutomationState.Ready)
             end
             local currentJob = Player.Job
-            if self.currentFate:isBossFate() and self.Config.BossFatesJob ~= nil and currentJob.Id ~= self.Config.BossFatesJob.Id then
+            if
+                self.currentFate:isBossFate()
+                and self.Config.BossFatesJob ~= nil
+                and currentJob.Id ~= self.Config.BossFatesJob.Id
+            then
                 self:turnOffCombatMods()
-                yield("/gs change "..self.Config.BossFatesJob.Name)
+                yield("/gs change " .. self.Config.BossFatesJob.Name)
                 return
             elseif not self.currentFate:isBossFate() and self.Config.MainJob.Id ~= currentJob.Id then
                 self:turnOffCombatMods()
-                yield("/gs change "..self.Config.MainJob.Name)
+                yield("/gs change " .. self.Config.MainJob.Name)
                 return
                 -- XXX(seamooo) known that below comparison had failures previously
                 -- uncertain if due to self.currentFate being nil or self.currentFate.fateObject.MaxLevel being nil
-            elseif InActiveFate() and (self.currentFate.fateObject.MaxLevel < Player.Job.Level) and not Player.IsLevelSynced then
+            elseif
+                InActiveFate()
+                and (self.currentFate.fateObject.MaxLevel < Player.Job.Level)
+                and not Player.IsLevelSynced
+            then
                 yield("/lsync")
                 -- potential wait here for stability
-            elseif IsFateActive(self.currentFate.fateObject)
+            elseif
+                IsFateActive(self.currentFate.fateObject)
                 and not InActiveFate()
                 and self.currentFate.fateObject.Progress ~= nil
                 and self.currentFate.fateObject.Progress < 100
                 and (GetDistanceToPoint(self.currentFate.position) < self.currentFate.fateObject.Radius + 10)
                 and not Svc.Condition[CharacterCondition.mounted]
-                and not (
-                    IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()
-                ) then -- got pushed out of fate. go back
+                and not (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress())
+            then -- got pushed out of fate. go back
                 yield("/vnav stop")
                 self:logDebug("pushed out of fate -> pathing back")
                 IPC.vnavmesh.PathfindAndMoveTo(self.currentFate.position, Player.CanFly and not disableFly)
@@ -1538,19 +1584,26 @@ function FateAutomation:doFate()
                 self:updateState(AutomationState.MiddleOfFateDismount)
                 return
             elseif self.currentFate.collectionsFateCtx ~= nil then
-                if (
-                    self.currentFate.fateObject.EventItem ~= 0
-                    and Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= FULL_CREDIT_MIN_ITEMS
-                ) or (
-                    self.currentFate.collectionsFateCtx.haveMaxCredit
-                    and self.currentFate.fateObject.Progress == 100
-                ) then
+                if
+                    (
+                        self.currentFate.fateObject.EventItem ~= 0
+                        and Inventory.GetItemCount(self.currentFate.fateObject.EventItem) >= FULL_CREDIT_MIN_ITEMS
+                    )
+                    or (
+                        self.currentFate.collectionsFateCtx.haveMaxCredit
+                        and self.currentFate.fateObject.Progress == 100
+                    )
+                then
                     yield("/vnav stop")
                     self:updateState(AutomationState.CollectionsFateTurnIn)
                 end
             end
             -- clear fatenpc if targeted
-            if self.currentFate.npcName ~= nil and self.currentFate.npcName ~= "" and GetTargetName() == self.currentFate.npcName then
+            if
+                self.currentFate.npcName ~= nil
+                and self.currentFate.npcName ~= ""
+                and GetTargetName() == self.currentFate.npcName
+            then
                 ClearTarget()
                 return
             end
@@ -1597,12 +1650,15 @@ function FateAutomation:doFate()
                 if IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning() then
                     yield("/vnav stop")
                 end
-            elseif not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning()) and not Svc.Condition[CharacterCondition.casting] then
+            elseif
+                not (IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning())
+                and not Svc.Condition[CharacterCondition.casting]
+            then
                 self:moveToTargetHitbox()
                 return
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1625,16 +1681,24 @@ function FateAutomation:waitForContinuation()
                 if self.Config.BossFatesJob ~= nil then
                     local currentJob = Player.Job.Id
                     if not Player.IsBusy then
-                        if self.currentFate ~= nil and self.currentFate.continuationIsBoss and currentJob ~= self.Config.BossFatesJob.Id then
-                            yield("/gs change "..self.Config.BossFatesJob.Name)
-                        elseif self.currentFate ~= nil and not self.currentFate.continuationIsBoss and currentJob ~= self.Config.BossFatesJob.Id then
-                            yield("/gs change "..self.Config.MainJob.Name)
+                        if
+                            self.currentFate ~= nil
+                            and self.currentFate.continuationIsBoss
+                            and currentJob ~= self.Config.BossFatesJob.Id
+                        then
+                            yield("/gs change " .. self.Config.BossFatesJob.Name)
+                        elseif
+                            self.currentFate ~= nil
+                            and not self.currentFate.continuationIsBoss
+                            and currentJob ~= self.Config.BossFatesJob.Id
+                        then
+                            yield("/gs change " .. self.Config.MainJob.Name)
                         end
                     end
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1647,7 +1711,7 @@ function FateAutomation:changeInstance()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1660,7 +1724,7 @@ function FateAutomation:changeInstanceDismount()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1675,7 +1739,8 @@ function FateAutomation:flyBackToAetheryte()
                 self:updateState(AutomationState.Ready)
                 return
             end
-            local closestAetheryte = GetClosestAetheryteToPoint(Svc.ClientState.LocalPlayer.Position, 200, self.currentZone)
+            local closestAetheryte =
+                GetClosestAetheryteToPoint(Svc.ClientState.LocalPlayer.Position, 200, self.currentZone)
             yield("/target aetheryte")
             if Svc.Targets.Target ~= nil and GetTargetName() == "aetheryte" and GetDistanceToTarget() <= 20 then
                 if IPC.vnavmesh.PathfindInProgress() or IPC.vnavmesh.IsRunning() then
@@ -1703,7 +1768,7 @@ function FateAutomation:flyBackToAetheryte()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1723,7 +1788,7 @@ function FateAutomation:extractMateria()
             end
             if Inventory.GetSpiritbondedItems().Count > 0 and Inventory.GetFreeInventorySlots() > 1 then
                 if not Addons.GetAddon("Materialize").Ready then
-                    yield("/generalaction \"Materia Extraction\"")
+                    yield('/generalaction "Materia Extraction"')
                     yield("/wait 0.25")
                     return
                 end
@@ -1744,7 +1809,7 @@ function FateAutomation:extractMateria()
                 end
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1782,7 +1847,7 @@ function FateAutomation:repair()
                 -- block until repair finished
                 return
             end
-            local hawkersAlleyAethernetShard = {position = Vector3(-213.95, 15.99, 49.35)}
+            local hawkersAlleyAethernetShard = { position = Vector3(-213.95, 15.99, 49.35) }
             if needsRepair.Count > 0 then
                 if self.Config.EnableSelfRepair and Inventory.GetItemCount(DARKMATTER_ITEMID) >= MIN_DARKMATTER then
                     if Addons.GetAddon("Shop").Ready then
@@ -1807,8 +1872,12 @@ function FateAutomation:repair()
                         return
                     end
                     -- TODO(seamooo) make this configurable
-                    local darkMatterVendor = {npcName="Unsynrael", position = Vector3(-257.71, 16.19, 50.11), wait=0.08}
-                    if GetDistanceToPoint(darkMatterVendor.position) > (DistanceBetween(hawkersAlleyAethernetShard.position, darkMatterVendor.position) + 10) then
+                    local darkMatterVendor =
+                        { npcName = "Unsynrael", position = Vector3(-257.71, 16.19, 50.11), wait = 0.08 }
+                    if
+                        GetDistanceToPoint(darkMatterVendor.position)
+                        > (DistanceBetween(hawkersAlleyAethernetShard.position, darkMatterVendor.position) + 10)
+                    then
                         yield("/li Hawkers' Alley")
                         -- potential wait here for stability
                     elseif Addons.GetAddon("telepotTown").Ready then
@@ -1820,7 +1889,7 @@ function FateAutomation:repair()
                         end
                     else
                         if Svc.Targets.Target == nil or GetTargetName() ~= darkMatterVendor.npcName then
-                            yield("/target "..darkMatterVendor.npcName)
+                            yield("/target " .. darkMatterVendor.npcName)
                             yield("/wait 0.25")
                         elseif not Svc.Condition[CharacterCondition.occupiedInQuestEvent] then
                             yield("/interact")
@@ -1844,8 +1913,11 @@ function FateAutomation:repair()
                         self.teleportManager("Limsa Lominsa Lower Decks")
                         return
                     end
-                    local mender = { npcName="Alistair", position = Vector3(-246.87, 16.19, 49.83)}
-                    if GetDistanceToPoint(mender.position) > (DistanceBetween(hawkersAlleyAethernetShard.position, mender.position) + 10) then
+                    local mender = { npcName = "Alistair", position = Vector3(-246.87, 16.19, 49.83) }
+                    if
+                        GetDistanceToPoint(mender.position)
+                        > (DistanceBetween(hawkersAlleyAethernetShard.position, mender.position) + 10)
+                    then
                         yield("/li Hawkers' Alley")
                         -- potential wait here for stability
                     elseif Addons.GetAddon("TelepotTown").Ready then
@@ -1857,7 +1929,7 @@ function FateAutomation:repair()
                         end
                     else
                         if Svc.Targets.Target == nil or GetTargetName() ~= mender.npcName then
-                            yield("/target "..mender.npcName)
+                            yield("/target " .. mender.npcName)
                         elseif not Svc.Condition[CharacterCondition.occupiedInQuestEvent] then
                             yield("/interact")
                         end
@@ -1870,7 +1942,7 @@ function FateAutomation:repair()
                 self:updateState(AutomationState.Ready)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1883,7 +1955,7 @@ function FateAutomation:executeBicolorExchange()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1896,7 +1968,7 @@ function FateAutomation:processRetainers()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1909,7 +1981,7 @@ function FateAutomation:grandCompanyTurnIn()
             self:logDebug("feature disabled")
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1927,10 +1999,10 @@ function FateAutomation:summonChocobo()
                 if Inventory.GetItemCount(GYSAHLGREENS_ITEMID) > 0 then
                     yield("/item Gysahl Greens")
                     yield("/wait 3")
-                    --- TODO(seamooo) any attempt to stance chocobo should be 
+                    --- TODO(seamooo) any attempt to stance chocobo should be
                     --- checked whether that stance is available to avoid error
                     --- spam
-                    yield('/cac "'..StringifyChocoboStance(self.Config.ChocoboStance)..' stance"')
+                    yield('/cac "' .. StringifyChocoboStance(self.Config.ChocoboStance) .. ' stance"')
                 elseif self.Config.EnableAutoBuyGysahlGreens then
                     self:logDebug("needs to get gysahl greens")
                     self:updateState(AutomationState.AutoBuyGysahlGreens)
@@ -1939,7 +2011,7 @@ function FateAutomation:summonChocobo()
             end
             self:updateState(AutomationState.Ready)
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -1967,7 +2039,7 @@ function FateAutomation:autoBuyGysahlGreens()
                 self.teleportManager("Limsa Lominsa Lower Decks")
                 return
             end
-            local gysahlGreensVendor = { position=Vector3(-62.1, 18.0, 9.4), npcName="Bango Zango" }
+            local gysahlGreensVendor = { position = Vector3(-62.1, 18.0, 9.4), npcName = "Bango Zango" }
             if GetDistanceToPoint(gysahlGreensVendor.position) > 5 then
                 if not (IPC.vnavmesh.IsRunning() or IPC.vnavmesh.PathfindInProgress()) then
                     IPC.vnavmesh.PathfindAndMoveTo(gysahlGreensVendor.position, false)
@@ -1991,10 +2063,10 @@ function FateAutomation:autoBuyGysahlGreens()
                 end
             else
                 yield("/vnav stop")
-                yield("/target "..gysahlGreensVendor.npcName)
+                yield("/target " .. gysahlGreensVendor.npcName)
             end
         end,
-        Dispose = function() end
+        Dispose = function() end,
     }
 end
 
@@ -2005,7 +2077,7 @@ end
 ---TODO(seamooo) make the logging configurable
 ---@param message string
 function FateAutomation:logDebug(message)
-    Dalamud.LogDebug("[FATE] "..message)
+    Dalamud.LogDebug("[FATE] " .. message)
 end
 
 ---@private
@@ -2015,7 +2087,7 @@ end
 ---TODO(seamooo) make the logging configurable
 ---@param message string
 function FateAutomation:log(message)
-    Dalamud.Log("[FATE] "..message)
+    Dalamud.Log("[FATE] " .. message)
 end
 
 ---@private
@@ -2023,7 +2095,7 @@ end
 ---state should not be mutated outside of this method
 ---@param newState AutomationState
 function FateAutomation:updateState(newState)
-    self:logDebug("update state to "..newState)
+    self:logDebug("update state to " .. newState)
     local jTable = {
         [AutomationState.Init] = self.init,
         [AutomationState.Ready] = self.ready,
@@ -2046,10 +2118,10 @@ function FateAutomation:updateState(newState)
         [AutomationState.ProcessRetainers] = self.processRetainers,
         [AutomationState.GcTurnIn] = self.grandCompanyTurnIn,
         [AutomationState.SummonChocobo] = self.summonChocobo,
-        [AutomationState.AutoBuyGysahlGreens] = self.autoBuyGysahlGreens
+        [AutomationState.AutoBuyGysahlGreens] = self.autoBuyGysahlGreens,
     }
     ---@type fun(FateAutomation): StateFunction
-    local initFn = jTable[newState];
+    local initFn = jTable[newState]
     self.currentState.Dispose()
     self.currentState = initFn(self)
 end
@@ -2074,7 +2146,9 @@ require("libfate-data")
 
 ---logs source line number
 ---@return integer line number
-function __LINE__() return debug.getinfo(2, 'l').currentline end
+function __LINE__()
+    return debug.getinfo(2, "l").currentline
+end
 
 ---@generic T: {[string]: any}
 ---@param val T
@@ -2083,12 +2157,12 @@ function DbgTable(val)
     local firstElem = true
     for k, v in pairs(val) do
         if not firstElem then
-            rv = rv..", "
+            rv = rv .. ", "
         end
         firstElem = false
-        rv = rv.."{\""..k.."\": "..tostring(v).."}"
+        rv = rv .. '{"' .. k .. '": ' .. tostring(v) .. "}"
     end
-    rv = rv.."}"
+    rv = rv .. "}"
     return rv
 end
 
@@ -2099,11 +2173,11 @@ function StringifyArray(val)
     local rv = "{"
     for idx, x in ipairs(val) do
         if idx ~= 1 then
-            rv = rv..", "
+            rv = rv .. ", "
         end
-        rv = rv..tostring(x)
+        rv = rv .. tostring(x)
     end
-    rv = rv.."}"
+    rv = rv .. "}"
     return rv
 end
 
@@ -2178,7 +2252,6 @@ function GetDistanceToTargetFlat()
     end
 end
 
-
 ---@param vec3 System_Numerics_Vector3
 ---@return number
 function GetDistanceToPointFlat(vec3)
@@ -2210,7 +2283,7 @@ function RandomAdjustCoordinates(position, maxDistance)
 end
 
 function EorzeaTimeToUnixTime(eorzeaTime)
-    return eorzeaTime/(144/7) -- 24h Eorzea Time equals 70min IRL
+    return eorzeaTime / (144 / 7) -- 24h Eorzea Time equals 70min IRL
 end
 
 ---@param zoneId number
@@ -2225,7 +2298,7 @@ function GetAetherytesInZone(zoneId)
     return aetherytesInZone
 end
 
----@param aetheryte IAetheryteEntry 
+---@param aetheryte IAetheryteEntry
 ---@return string
 function GetAetheryteName(aetheryte)
     local name = aetheryte.AetheryteData.Value.PlaceName.Value.Name:GetText()
@@ -2248,7 +2321,7 @@ end
 ---@return boolean
 function InActiveFate()
     local activeFates = Fates.GetActiveFates()
-    for i=0, activeFates.Count-1 do
+    for i = 0, activeFates.Count - 1 do
         if activeFates[i].InFate == true and IsFateActive(activeFates[i]) then
             return true
         end
@@ -2311,27 +2384,25 @@ end
 -- TODO(seamooo) should make a preamble that loads below
 
 ---@type fun(obj: IGameObject):EntityWrapper
-EntityWrapper = load_type('SomethingNeedDoing.LuaMacro.Wrappers.EntityWrapper')
+EntityWrapper = load_type("SomethingNeedDoing.LuaMacro.Wrappers.EntityWrapper")
 
 ---@type ObjectKindEnum
-ObjectKind = load_type('Dalamud.Game.ClientState.Objects.Enums.ObjectKind')
+ObjectKind = load_type("Dalamud.Game.ClientState.Objects.Enums.ObjectKind")
 
 ---@type NameplateKindEnum
-NameplateKind = load_type('ECommons.GameFunctions.NameplateKind')
+NameplateKind = load_type("ECommons.GameFunctions.NameplateKind")
 
 function AttemptToTargetClosestFateEnemy()
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
-    for i=0, Svc.Objects.Length-1 do
+    for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and
-            not obj.IsDead and EntityWrapper(obj).FateId > 0
-        then
-                local dist = GetDistanceToPoint(obj.Position)
-                if dist < closestTargetDistance then
-                    closestTargetDistance = dist
-                    closestTarget = obj
-                end
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
         end
     end
     if closestTarget ~= nil then
@@ -2355,7 +2426,7 @@ end
 function AcceptTeleportOfferLocation(destinationAetheryte)
     if Addons.GetAddon("_NotificationTelepo").Ready then
         local location = GetNodeText("_NotificationTelepo", 3, 4)
-        yield("/callback _Notification true 0 16 "..location)
+        yield("/callback _Notification true 0 16 " .. location)
         yield("/wait 1")
     end
 
@@ -2363,7 +2434,10 @@ function AcceptTeleportOfferLocation(destinationAetheryte)
         local teleportOfferMessage = GetNodeText("SelectYesno", 1, 2)
         if type(teleportOfferMessage) == "string" then
             local teleportOfferLocation = teleportOfferMessage:match("Accept Teleport to (.+)%?")
-            if teleportOfferLocation ~= nil and string.lower(teleportOfferLocation) == string.lower(destinationAetheryte) then
+            if
+                teleportOfferLocation ~= nil
+                and string.lower(teleportOfferLocation) == string.lower(destinationAetheryte)
+            then
                 yield("/callback SelectYesno true 0") -- accept teleport
                 return
             end
@@ -2395,7 +2469,7 @@ function NewTeleportManager(timeout, logHook)
         local now = os.clock()
         if lastTeleportTimestamp == nil or now - lastTeleportTimestamp > 2 then
             -- below executes teleport and blocks until finished or timeout
-            yield("/li tp "..aetheryteName)
+            yield("/li tp " .. aetheryteName)
             yield("/wait 1")
             while Svc.Condition[CharacterCondition.casting] do
                 if os.clock() - now > timeoutConcrete then
@@ -2439,7 +2513,9 @@ end
 ---@param v System_Numerics_Vector2
 function Normalize(v)
     local len = v:Length()
-    if len == 0 then return v end
+    if len == 0 then
+        return v
+    end
     return v / len
 end
 
@@ -2453,7 +2529,7 @@ end
 ---@field aetheryteList AetheryteTable[]
 ---@field flying boolean
 
----@return ZoneFateInfoExt 
+---@return ZoneFateInfoExt
 function GetCurrentZone()
     local zoneInfo = nil
     local targetZoneId = Svc.ClientState.TerritoryType
@@ -2468,13 +2544,13 @@ function GetCurrentZone()
         zoneInfo = {
             zoneName = "",
             zoneId = targetZoneId,
-            fatesList= {
-                collectionsFates= {},
-                otherNpcFates= {},
-                bossFates= {},
-                blacklistedFates= {},
-                fatesWithContinuations = {}
-            }
+            fatesList = {
+                collectionsFates = {},
+                otherNpcFates = {},
+                bossFates = {},
+                blacklistedFates = {},
+                fatesWithContinuations = {},
+            },
         }
     end
     local flying = zoneInfo.flying
@@ -2484,7 +2560,7 @@ function GetCurrentZone()
         zoneId = zoneInfo.zoneId,
         fatesList = zoneInfo.fatesList,
         flying = flying == nil or flying,
-        aetheryteList = {}
+        aetheryteList = {},
     }
     local aetherytes = GetAetherytesInZone(zoneInfo.zoneId)
     for _, aetheryte in ipairs(aetherytes) do
@@ -2493,7 +2569,7 @@ function GetCurrentZone()
             name = GetAetheryteName(aetheryte),
             id = aetheryte.AetheryteId,
             position = aetherytePos,
-            aetheryteObj = aetheryte
+            aetheryteObj = aetheryte,
         }
         table.insert(rv.aetheryteList, aetheryteTable)
     end
@@ -2520,7 +2596,6 @@ function GetClosestAetheryte(position, teleportTimePenalty, zone)
     return rv
 end
 
-
 ---Returns the closest aetheryte if a teleport would be faster else nil
 ---@param position System_Numerics_Vector3
 ---@param teleportTimePenalty number yalms travelled during teleport cast
@@ -2543,16 +2618,14 @@ end
 function AttemptToTargetClosestFateEnemy()
     local closestTarget = nil
     local closestTargetDistance = math.maxinteger
-    for i=0, Svc.Objects.Length-1 do
+    for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and
-            not obj.IsDead and EntityWrapper(obj).FateId > 0
-        then
-                local dist = GetDistanceToPoint(obj.Position)
-                if dist < closestTargetDistance then
-                    closestTargetDistance = dist
-                    closestTarget = obj
-                end
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
         end
     end
     if closestTarget ~= nil then
@@ -2603,7 +2676,7 @@ function IsCollectionsFate(fateName, zone)
     return false
 end
 
----@param fate FateWrapper 
+---@param fate FateWrapper
 ---@return boolean
 function IsBossFate(fate)
     return fate.IconId == 60722
@@ -2692,7 +2765,7 @@ function BuildFateObjInfo(obj)
         maxHp = tpEntity.MaxHp,
         currHp = tpEntity.CurrentHp,
         kind = obj.ObjectKind,
-        name = tpEntity.Name
+        name = tpEntity.Name,
     }
 end
 
@@ -2715,9 +2788,7 @@ function TargetIdleFateMob(fate)
     local bestObjInfo = nil
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id then
             local info = BuildFateObjInfo(obj)
             if info.nameplateKind == NameplateKind.HostileNotEngaged and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.distance > info.distance then
@@ -2774,10 +2845,7 @@ function TargetFateAdds(fate)
     end
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
@@ -2807,10 +2875,7 @@ function TargetFateBoss(fate)
     end
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
                 if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
@@ -2859,10 +2924,7 @@ function TargetClosestFateMob(fate)
     local bestObjInfo = nil
     for i = 0, Svc.Objects.Length - 1 do
         local obj = Svc.Objects[i]
-        if obj ~= nil
-            and obj.IsTargetable
-            and EntityWrapper(obj).FateId == fate.Id
-            and obj:IsHostile() then
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
             local info = BuildFateObjInfo(obj)
             if bestObjInfo == nil or bestObjInfo.distance > info.distance then
                 bestObjInfo = info
@@ -2883,7 +2945,7 @@ function HasStatusId(statusId)
     if statusList == nil then
         return false
     end
-    for i=0, statusList.Length-1 do
+    for i = 0, statusList.Length - 1 do
         if statusList[i].StatusId == statusId then
             return true
         end
@@ -2902,29 +2964,30 @@ function TurnOnTextAdvance()
     yield("/at y")
     return true
 end
+
 end)
 __bundle_register("libfate-data", function(require, _LOADED, __bundle_register, __bundle_modules)
 import("System.Numerics")
 CharacterCondition = {
-    dead=2,
-    mounted=4,
-    inCombat=26,
-    casting=27,
-    occupiedInEvent=31,
-    occupiedInQuestEvent=32,
-    occupied=33,
-    boundByDuty34=34,
-    occupiedMateriaExtractionAndRepair=39,
-    betweenAreas=45,
-    jumping48=48,
-    jumping61=61,
-    occupiedSummoningBell=50,
-    betweenAreasForDuty=51,
-    boundByDuty56=56,
-    mounting57=57,
-    mounting64=64,
-    beingMoved=70,
-    flying=77
+    dead = 2,
+    mounted = 4,
+    inCombat = 26,
+    casting = 27,
+    occupiedInEvent = 31,
+    occupiedInQuestEvent = 32,
+    occupied = 33,
+    boundByDuty34 = 34,
+    occupiedMateriaExtractionAndRepair = 39,
+    betweenAreas = 45,
+    jumping48 = 48,
+    jumping61 = 61,
+    occupiedSummoningBell = 50,
+    betweenAreasForDuty = 51,
+    boundByDuty56 = 56,
+    mounting57 = 57,
+    mounting64 = 64,
+    beingMoved = 70,
+    flying = 77,
 }
 
 -- TODO(seamooo) investigate if below is dead code
@@ -2963,16 +3026,14 @@ CharacterCondition = {
 --     pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
 -- }
 
-BicolorExchangeData =
-{
+BicolorExchangeData = {
     {
         shopKeepName = "Gadfrid",
         zoneName = "Old Sharlayan",
         zoneId = 962,
         aetheryteName = "Old Sharlayan",
-        position=Vector3(78, 5, -37),
-        shopItems =
-        {
+        position = Vector3(78, 5, -37),
+        shopItems = {
             { itemName = "Bicolor Gemstone Voucher", itemIndex = 8, price = 100 },
             { itemName = "Ovibos Milk", itemIndex = 9, price = 2 },
             { itemName = "Hamsa Tenderloin", itemIndex = 10, price = 2 },
@@ -2992,20 +3053,19 @@ BicolorExchangeData =
             { itemName = "Lunatender Blossom", itemIndex = 24, price = 2 },
             { itemName = "Mousse Flesh", itemIndex = 25, price = 2 },
             { itemName = "Petalouda Scales", itemIndex = 26, price = 2 },
-        }
+        },
     },
     {
         shopKeepName = "Beryl",
         zoneName = "Solution Nine",
         zoneId = 1186,
         aetheryteName = "Solution Nine",
-        position=Vector3(-198.47, 0.92, -6.95),
+        position = Vector3(-198.47, 0.92, -6.95),
         miniAethernet = {
             name = "Nexus Arcade",
-            position=Vector3(-157.74, 0.29, 17.43)
+            position = Vector3(-157.74, 0.29, 17.43),
         },
-        shopItems =
-        {
+        shopItems = {
             { itemName = "Turali Bicolor Gemstone Voucher", itemIndex = 6, price = 100 },
             { itemName = "Alpaca Fillet", itemIndex = 7, price = 3 },
             { itemName = "Swampmonk Thigh", itemIndex = 8, price = 3 },
@@ -3024,19 +3084,18 @@ BicolorExchangeData =
             { itemName = "Alexandrian Axe Beak Wing", itemIndex = 21, price = 3 },
             { itemName = "Lesser Apollyon Shell", itemIndex = 22, price = 3 },
             { itemName = "Tumbleclaw Weeds", itemIndex = 23, price = 3 },
-        }
+        },
     },
     {
         shopKeepName = "Rral Wuruq",
         zoneName = "Yak T'el",
         zoneId = 1189,
         aetheryteName = "Iq Br'aax",
-        position=Vector3(-381, 23, -436),
-        shopItems =
-        {
-            { itemName = "Ut'ohmu Siderite", itemIndex = 8, price = 600 }
-        }
-    }
+        position = Vector3(-381, 23, -436),
+        shopItems = {
+            { itemName = "Ut'ohmu Siderite", itemIndex = 8, price = 600 },
+        },
+    },
 }
 
 ---@class FateInfo
@@ -3066,611 +3125,608 @@ FatesData = {
         zoneName = "Middle La Noscea",
         zoneId = 134,
         fatesList = {
-            collectionsFates= {},
-            otherNpcFates= {
-                { fateName="Thwack-a-Mole" , npcName="Troubled Tiller" },
-                { fateName="Yellow-bellied Greenbacks", npcName="Yellowjacket Drill Sergeant"},
-                { fateName="The Orange Boxes", npcName="Farmer in Need" }
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Thwack-a-Mole", npcName = "Troubled Tiller" },
+                { fateName = "Yellow-bellied Greenbacks", npcName = "Yellowjacket Drill Sergeant" },
+                { fateName = "The Orange Boxes", npcName = "Farmer in Need" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Lower La Noscea",
         zoneId = 135,
         fatesList = {
-            collectionsFates= {},
-            otherNpcFates= {
-                { fateName="Away in a Bilge Hold" , npcName="Yellowjacket Veteran" },
-                { fateName="Fight the Flower", npcName="Furious Farmer" }
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Away in a Bilge Hold", npcName = "Yellowjacket Veteran" },
+                { fateName = "Fight the Flower", npcName = "Furious Farmer" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Central Thanalan",
         zoneId = 141,
         fatesList = {
-            collectionsFates= {
-                { fateName="Let them Eat Cactus", npcName="Hungry Hobbledehoy"},
+            collectionsFates = {
+                { fateName = "Let them Eat Cactus", npcName = "Hungry Hobbledehoy" },
             },
-            otherNpcFates= {
-                { fateName="A Few Arrows Short of a Quiver" , npcName="Crestfallen Merchant" },
-                { fateName="Wrecked Rats", npcName="Coffer & Coffin Heavy" },
-                { fateName="Something to Prove", npcName="Cowardly Challenger" }
+            otherNpcFates = {
+                { fateName = "A Few Arrows Short of a Quiver", npcName = "Crestfallen Merchant" },
+                { fateName = "Wrecked Rats", npcName = "Coffer & Coffin Heavy" },
+                { fateName = "Something to Prove", npcName = "Cowardly Challenger" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Eastern Thanalan",
         zoneId = 145,
         fatesList = {
-            collectionsFates= {},
-            otherNpcFates= {
-                { fateName="Attack on Highbridge: Denouement" , npcName="Brass Blade" }
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Attack on Highbridge: Denouement", npcName = "Brass Blade" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Southern Thanalan",
         zoneId = 146,
         fatesList = {
-            collectionsFates= {},
-            otherNpcFates= {},
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
+            blacklistedFates = {},
         },
-        flying = false
+        flying = false,
     },
     {
         zoneName = "Outer La Noscea",
         zoneId = 180,
         fatesList = {
-            collectionsFates= {},
-            otherNpcFates= {},
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
+            blacklistedFates = {},
         },
-        flying = false
+        flying = false,
     },
     {
         zoneName = "Coerthas Central Highlands",
         zoneId = 155,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
             specialFates = {
-                "He Taketh It with His Eyes" --behemoth
+                "He Taketh It with His Eyes", --behemoth
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Coerthas Western Highlands",
         zoneId = 397,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Mor Dhona",
         zoneId = 156,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Sea of Clouds",
         zoneId = 401,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Azys Lla",
         zoneId = 402,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Dravanian Forelands",
         zoneId = 398,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
             specialFates = {
-                "Coeurls Chase Boys Chase Coeurls" --coeurlregina
+                "Coeurls Chase Boys Chase Coeurls", --coeurlregina
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Dravanian Hinterlands",
-        zoneId=399,
+        zoneId = 399,
         tpZoneId = 478,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Churning Mists",
-        zoneId=400,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        zoneId = 400,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Fringes",
         zoneId = 612,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Showing The Recruits What For", npcName="Storm Commander Bharbennsyn" },
-                { fateName="Get Sharp", npcName="M Tribe Youth" },
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Showing The Recruits What For", npcName = "Storm Commander Bharbennsyn" },
+                { fateName = "Get Sharp", npcName = "M Tribe Youth" },
             },
-            otherNpcFates= {
-                { fateName="The Mail Must Get Through", npcName="Storm Herald" },
-                { fateName="The Antlion's Share", npcName="M Tribe Ranger" },
-                { fateName="Double Dhara", npcName="Resistence Fighter" },
-                { fateName="Keeping the Peace", npcName="Resistence Fighter" }
+            otherNpcFates = {
+                { fateName = "The Mail Must Get Through", npcName = "Storm Herald" },
+                { fateName = "The Antlion's Share", npcName = "M Tribe Ranger" },
+                { fateName = "Double Dhara", npcName = "Resistence Fighter" },
+                { fateName = "Keeping the Peace", npcName = "Resistence Fighter" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Peaks",
         zoneId = 620,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Fletching Returns", npcName="Sorry Sutler" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Fletching Returns", npcName = "Sorry Sutler" },
             },
-            otherNpcFates= {
-                { fateName="Resist, Die, Repeat", npcName="Wounded Fighter" },
-                { fateName="And the Bandits Played On", npcName="Frightened Villager" },
-                { fateName="Forget-me-not", npcName="Coldhearth Resident" },
-                { fateName="Of Mice and Men", npcName="Furious Farmer" }
+            otherNpcFates = {
+                { fateName = "Resist, Die, Repeat", npcName = "Wounded Fighter" },
+                { fateName = "And the Bandits Played On", npcName = "Frightened Villager" },
+                { fateName = "Forget-me-not", npcName = "Coldhearth Resident" },
+                { fateName = "Of Mice and Men", npcName = "Furious Farmer" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {
+            blacklistedFates = {
                 "The Magitek Is Back", --escort
-                "A New Leaf" --escort
-            }
-        }
+                "A New Leaf", --escort
+            },
+        },
     },
     {
         zoneName = "The Lochs",
         zoneId = 621,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
             specialFates = {
-                "A Horse Outside" --ixion
+                "A Horse Outside", --ixion
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Ruby Sea",
         zoneId = 613,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Treasure Island", npcName="Blue Avenger" },
-                { fateName="The Coral High Ground", npcName="Busy Beachcomber" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Treasure Island", npcName = "Blue Avenger" },
+                { fateName = "The Coral High Ground", npcName = "Busy Beachcomber" },
             },
-            otherNpcFates= {
-                { fateName="Another One Bites The Dust", npcName="Pirate Youth" },
-                { fateName="Ray Band", npcName="Wounded Confederate" },
-                { fateName="Bilge-hold Jin", npcName="Green Confederate" }
+            otherNpcFates = {
+                { fateName = "Another One Bites The Dust", npcName = "Pirate Youth" },
+                { fateName = "Ray Band", npcName = "Wounded Confederate" },
+                { fateName = "Bilge-hold Jin", npcName = "Green Confederate" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Yanxia",
         zoneId = 614,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Rice and Shine", npcName="Flabbergasted Farmwife" },
-                { fateName="More to Offer", npcName="Ginko" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Rice and Shine", npcName = "Flabbergasted Farmwife" },
+                { fateName = "More to Offer", npcName = "Ginko" },
             },
-            otherNpcFates= {
-                { fateName="Freedom Flies", npcName="Kinko" },
-                { fateName="A Tisket, a Tasket", npcName="Gyogun of the Most Bountiful Catch" }
+            otherNpcFates = {
+                { fateName = "Freedom Flies", npcName = "Kinko" },
+                { fateName = "A Tisket, a Tasket", npcName = "Gyogun of the Most Bountiful Catch" },
             },
             specialFates = {
-                "Foxy Lady" --foxyyy
+                "Foxy Lady", --foxyyy
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Azim Steppe",
         zoneId = 622,
-        fatesList= {
-            collectionsFates= {
-                { fateName="The Dataqi Chronicles: Duty", npcName="Altani" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "The Dataqi Chronicles: Duty", npcName = "Altani" },
             },
-            otherNpcFates= {
-                { fateName="Rock for Food", npcName="Oroniri Youth" },
-                { fateName="Killing Dzo", npcName="Olkund Dzotamer" },
-                { fateName="They Shall Not Want", npcName="Mol Shepherd" },
-                { fateName="A Good Day to Die", npcName="Qestiri Merchant" }
+            otherNpcFates = {
+                { fateName = "Rock for Food", npcName = "Oroniri Youth" },
+                { fateName = "Killing Dzo", npcName = "Olkund Dzotamer" },
+                { fateName = "They Shall Not Want", npcName = "Mol Shepherd" },
+                { fateName = "A Good Day to Die", npcName = "Qestiri Merchant" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Lakeland",
         zoneId = 813,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Pick-up Sticks", npcName="Crystarium Botanist" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Pick-up Sticks", npcName = "Crystarium Botanist" },
             },
-            otherNpcFates= {
-                { fateName="Subtle Nightshade", npcName="Artless Dodger" },
-                { fateName="Economic Peril", npcName="Jobb Guard" }
+            otherNpcFates = {
+                { fateName = "Subtle Nightshade", npcName = "Artless Dodger" },
+                { fateName = "Economic Peril", npcName = "Jobb Guard" },
             },
             fatesWithContinuations = {
-                "Behind Anemone Lines"
+                "Behind Anemone Lines",
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Kholusia",
         zoneId = 814,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Ironbeard Builders - Rebuilt", npcName="Tholl Engineer" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Ironbeard Builders - Rebuilt", npcName = "Tholl Engineer" },
             },
-            otherNpcFates= {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
             specialFates = {
-                "A Finale Most Formidable" --formidable
+                "A Finale Most Formidable", --formidable
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Amh Araeng",
         zoneId = 815,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {},
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {
+            blacklistedFates = {
                 "Tolba No. 1", -- pathing is really bad to enemies
-            }
-        }
+            },
+        },
     },
     {
         zoneName = "Il Mheg",
         zoneId = 816,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Twice Upon a Time", npcName="Nectar-seeking Pixie" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Twice Upon a Time", npcName = "Nectar-seeking Pixie" },
             },
-            otherNpcFates= {
-                { fateName="Once Upon a Time", npcName="Nectar-seeking Pixie" },
+            otherNpcFates = {
+                { fateName = "Once Upon a Time", npcName = "Nectar-seeking Pixie" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Rak'tika Greatwood",
         zoneId = 817,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Picking up the Pieces", npcName="Night's Blessed Missionary" },
-                { fateName="Pluck of the Draw", npcName="Myalna Bowsing" },
-                { fateName="Monkeying Around", npcName="Fanow Warder" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Picking up the Pieces", npcName = "Night's Blessed Missionary" },
+                { fateName = "Pluck of the Draw", npcName = "Myalna Bowsing" },
+                { fateName = "Monkeying Around", npcName = "Fanow Warder" },
             },
-            otherNpcFates= {
-                { fateName="Queen of the Harpies", npcName="Fanow Huntress" },
-                { fateName="Shot Through the Hart", npcName="Qilmet Redspear" },
+            otherNpcFates = {
+                { fateName = "Queen of the Harpies", npcName = "Fanow Huntress" },
+                { fateName = "Shot Through the Hart", npcName = "Qilmet Redspear" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "The Tempest",
         zoneId = 818,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Low Coral Fiber", npcName="Teushs Ooan" },
-                { fateName="Pearls Apart", npcName="Ondo Spearfisher" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Low Coral Fiber", npcName = "Teushs Ooan" },
+                { fateName = "Pearls Apart", npcName = "Ondo Spearfisher" },
             },
-            otherNpcFates= {
-                { fateName="Where has the Dagon", npcName="Teushs Ooan" },
-                { fateName="Ondo of Blood", npcName="Teushs Ooan" },
-                { fateName="Lookin' Back on the Track", npcName="Teushs Ooan" },
+            otherNpcFates = {
+                { fateName = "Where has the Dagon", npcName = "Teushs Ooan" },
+                { fateName = "Ondo of Blood", npcName = "Teushs Ooan" },
+                { fateName = "Lookin' Back on the Track", npcName = "Teushs Ooan" },
             },
             fatesWithContinuations = {},
             specialFates = {
-                "The Head, the Tail, the Whole Damned Thing" --archaeotania
+                "The Head, the Tail, the Whole Damned Thing", --archaeotania
             },
-            blacklistedFates= {
+            blacklistedFates = {
                 "Coral Support", -- escort fate
                 "The Seashells He Sells", -- escort fate
-            }
-        }
+            },
+        },
     },
     {
         zoneName = "Labyrinthos",
         zoneId = 956,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Sheaves on the Wind", npcName="Vexed Researcher" },
-                { fateName="Moisture Farming", npcName="Well-moisturized Researcher" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Sheaves on the Wind", npcName = "Vexed Researcher" },
+                { fateName = "Moisture Farming", npcName = "Well-moisturized Researcher" },
             },
-            otherNpcFates= {},
+            otherNpcFates = {},
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Thavnair",
         zoneId = 957,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Full Petal Alchemist: Perilous Pickings", npcName="Sajabaht" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Full Petal Alchemist: Perilous Pickings", npcName = "Sajabaht" },
             },
-            otherNpcFates= {},
+            otherNpcFates = {},
             specialFates = {
-                "Devout Pilgrims vs. Daivadipa" --daveeeeee
+                "Devout Pilgrims vs. Daivadipa", --daveeeeee
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Garlemald",
         zoneId = 958,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Parts Unknown", npcName="Displaced Engineer" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Parts Unknown", npcName = "Displaced Engineer" },
             },
-            otherNpcFates= {
-                { fateName="Artificial Malevolence: 15 Minutes to Comply", npcName="Keltlona" },
-                { fateName="Artificial Malevolence: The Drone Army", npcName="Ebrelnaux" },
-                { fateName="Artificial Malevolence: Unmanned Aerial Villains", npcName="Keltlona" },
-                { fateName="Amazing Crates", npcName="Hardy Refugee" }
+            otherNpcFates = {
+                { fateName = "Artificial Malevolence: 15 Minutes to Comply", npcName = "Keltlona" },
+                { fateName = "Artificial Malevolence: The Drone Army", npcName = "Ebrelnaux" },
+                { fateName = "Artificial Malevolence: Unmanned Aerial Villains", npcName = "Keltlona" },
+                { fateName = "Amazing Crates", npcName = "Hardy Refugee" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Mare Lamentorum",
         zoneId = 959,
-        fatesList= {
-            collectionsFates= {
-                { fateName="What a Thrill", npcName="Thrillingway" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "What a Thrill", npcName = "Thrillingway" },
             },
-            otherNpcFates= {
-                { fateName="Lepus Lamentorum: Dynamite Disaster", npcName="Warringway" },
-                { fateName="Lepus Lamentorum: Cleaner Catastrophe", npcName="Fallingway" },
+            otherNpcFates = {
+                { fateName = "Lepus Lamentorum: Dynamite Disaster", npcName = "Warringway" },
+                { fateName = "Lepus Lamentorum: Cleaner Catastrophe", npcName = "Fallingway" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {
+            blacklistedFates = {
                 "Hunger Strikes", --really bad line of sight with rocks, get stuck not doing anything quite often
-            }
-        }
+            },
+        },
     },
     {
         zoneName = "Ultima Thule",
         zoneId = 960,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Omicron Recall: Comms Expansion", npcName="N-6205" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Omicron Recall: Comms Expansion", npcName = "N-6205" },
             },
-            otherNpcFates= {
-                { fateName="Wings of Glory", npcName="Ahl Ein's Kin" },
-                { fateName="Omicron Recall: Secure Connection", npcName="N-6205"},
-                { fateName="Only Just Begun", npcName="Myhk Nehr" }
+            otherNpcFates = {
+                { fateName = "Wings of Glory", npcName = "Ahl Ein's Kin" },
+                { fateName = "Omicron Recall: Secure Connection", npcName = "N-6205" },
+                { fateName = "Only Just Begun", npcName = "Myhk Nehr" },
             },
             specialFates = {
-                "Omicron Recall: Killing Order" --chi
+                "Omicron Recall: Killing Order", --chi
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Elpis",
         zoneId = 961,
-        fatesList= {
-            collectionsFates= {
-                { fateName="So Sorry, Sokles", npcName="Flora Overseer" }
+        fatesList = {
+            collectionsFates = {
+                { fateName = "So Sorry, Sokles", npcName = "Flora Overseer" },
             },
-            otherNpcFates= {
-                { fateName="Grand Designs: Unknown Execution", npcName="Meletos the Inscrutable" },
-                { fateName="Grand Designs: Aigokeros", npcName="Meletos the Inscrutable" },
-                { fateName="Nature's Staunch Protector", npcName="Monoceros Monitor" },
+            otherNpcFates = {
+                { fateName = "Grand Designs: Unknown Execution", npcName = "Meletos the Inscrutable" },
+                { fateName = "Grand Designs: Aigokeros", npcName = "Meletos the Inscrutable" },
+                { fateName = "Nature's Staunch Protector", npcName = "Monoceros Monitor" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
         zoneName = "Urqopacha",
         zoneId = 1187,
-        fatesList= {
-            collectionsFates= {},
-            otherNpcFates= {
-                { fateName="Pasture Expiration Date", npcName="Tsivli Stoutstrider" },
-                { fateName="Gust Stop Already", npcName="Mourning Yok Huy" },
-                { fateName="Lay Off the Horns", npcName="Yok Huy Vigilkeeper" },
-                { fateName="Birds Up", npcName="Coffee Farmer" },
-                { fateName="Salty Showdown", npcName="Chirwagur Sabreur" },
-                { fateName="Fire Suppression", npcName="Tsivli Stoutstrider"} ,
-                { fateName="Panaq Attack", npcName="Pelupelu Peddler" }
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Pasture Expiration Date", npcName = "Tsivli Stoutstrider" },
+                { fateName = "Gust Stop Already", npcName = "Mourning Yok Huy" },
+                { fateName = "Lay Off the Horns", npcName = "Yok Huy Vigilkeeper" },
+                { fateName = "Birds Up", npcName = "Coffee Farmer" },
+                { fateName = "Salty Showdown", npcName = "Chirwagur Sabreur" },
+                { fateName = "Fire Suppression", npcName = "Tsivli Stoutstrider" },
+                { fateName = "Panaq Attack", npcName = "Pelupelu Peddler" },
             },
             fatesWithContinuations = {
-                { fateName="Salty Showdown", continuationIsBoss=true }
+                { fateName = "Salty Showdown", continuationIsBoss = true },
             },
-            blacklistedFates= {
+            blacklistedFates = {
                 "Young Volcanoes",
                 "Wolf Parade", -- multiple Pelupelu Peddler npcs, rng whether it tries to talk to the right one
-                "Panaq Attack" -- multiple Pelupleu Peddler npcs
-            }
-        }
+                "Panaq Attack", -- multiple Pelupleu Peddler npcs
+            },
+        },
     },
     {
-        zoneName="Kozama'uka",
-        zoneId=1188,
-        fatesList={
-            collectionsFates={
-                { fateName="Borne on the Backs of Burrowers", npcName="Moblin Forager" },
-                { fateName="Combing the Area", npcName="Hanuhanu Combmaker" },
-
+        zoneName = "Kozama'uka",
+        zoneId = 1188,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Borne on the Backs of Burrowers", npcName = "Moblin Forager" },
+                { fateName = "Combing the Area", npcName = "Hanuhanu Combmaker" },
             },
-            otherNpcFates= {
-                { fateName="There's Always a Bigger Beast", npcName="Hanuhanu Angler" },
-                { fateName="Toucalibri at That Game", npcName="Hanuhanu Windscryer" },
-                { fateName="Putting the Fun in Fungicide", npcName="Bagnobrok Craftythoughts" },
-                { fateName="Reeds in Need", npcName="Hanuhanu Farmer" },
-                { fateName="Tax Dodging", npcName="Pelupelu Peddler" },
-
+            otherNpcFates = {
+                { fateName = "There's Always a Bigger Beast", npcName = "Hanuhanu Angler" },
+                { fateName = "Toucalibri at That Game", npcName = "Hanuhanu Windscryer" },
+                { fateName = "Putting the Fun in Fungicide", npcName = "Bagnobrok Craftythoughts" },
+                { fateName = "Reeds in Need", npcName = "Hanuhanu Farmer" },
+                { fateName = "Tax Dodging", npcName = "Pelupelu Peddler" },
             },
             fatesWithContinuations = {},
-            blacklistedFates= {
+            blacklistedFates = {
                 "Mole Patrol",
-                "Tax Dodging" -- multiple Pelupelu Peddlers
-            }
-        }
+                "Tax Dodging", -- multiple Pelupelu Peddlers
+            },
+        },
     },
     {
-        zoneName="Yak T'el",
-        zoneId=1189,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Escape Shroom", npcName="Hoobigo Forager" }
+        zoneName = "Yak T'el",
+        zoneId = 1189,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Escape Shroom", npcName = "Hoobigo Forager" },
             },
-            otherNpcFates= {
+            otherNpcFates = {
                 --{ fateName=, npcName="Xbr'aal Hunter" }, 2 npcs names same thing....
-                { fateName="La Selva se lo Llevó", npcName="Xbr'aal Hunter" },
-                { fateName="Stabbing Gutward", npcName="Doppro Spearbrother" },
-                { fateName="Porting is Such Sweet Sorrow", npcName="Hoobigo Porter" }
+                { fateName = "La Selva se lo Llevó", npcName = "Xbr'aal Hunter" },
+                { fateName = "Stabbing Gutward", npcName = "Doppro Spearbrother" },
+                { fateName = "Porting is Such Sweet Sorrow", npcName = "Hoobigo Porter" },
                 -- { fateName="Stick it to the Mantis", npcName="Xbr'aal Sentry" }, -- 2 npcs named same thing.....
             },
             fatesWithContinuations = {
-                "Stabbing Gutward"
+                "Stabbing Gutward",
             },
-            blacklistedFates= {
-                "The Departed"
-            }
-        }
+            blacklistedFates = {
+                "The Departed",
+            },
+        },
     },
     {
-        zoneName="Shaaloani",
-        zoneId=1190,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Gonna Have Me Some Fur", npcName="Tonawawtan Trapper" },
-                { fateName="The Serpentlord Sires", npcName="Br'uk Vaw of the Setting Sun" }
+        zoneName = "Shaaloani",
+        zoneId = 1190,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Gonna Have Me Some Fur", npcName = "Tonawawtan Trapper" },
+                { fateName = "The Serpentlord Sires", npcName = "Br'uk Vaw of the Setting Sun" },
             },
-            otherNpcFates= {
-                { fateName="The Dead Never Die", npcName="Tonawawtan Worker" }, --22 boss
-                { fateName="Ain't What I Herd", npcName="Hhetsarro Herder" }, --23 normal
-                { fateName="Helms off to the Bull", npcName="Hhetsarro Herder" }, --22 boss
-                { fateName="A Raptor Runs Through It", npcName="Hhetsarro Angler" }, --24 tower defense
-                { fateName="The Serpentlord Suffers", npcName="Br'uk Vaw of the Setting Sun" },
-                { fateName="That's Me and the Porter", npcName="Pelupelu Peddler" },
+            otherNpcFates = {
+                { fateName = "The Dead Never Die", npcName = "Tonawawtan Worker" }, --22 boss
+                { fateName = "Ain't What I Herd", npcName = "Hhetsarro Herder" }, --23 normal
+                { fateName = "Helms off to the Bull", npcName = "Hhetsarro Herder" }, --22 boss
+                { fateName = "A Raptor Runs Through It", npcName = "Hhetsarro Angler" }, --24 tower defense
+                { fateName = "The Serpentlord Suffers", npcName = "Br'uk Vaw of the Setting Sun" },
+                { fateName = "That's Me and the Porter", npcName = "Pelupelu Peddler" },
             },
             fatesWithContinuations = {
-                "The Serpentlord Sires"
+                "The Serpentlord Sires",
             },
             specialFates = {
-                "The Serpentlord Seethes" -- big snake fate
+                "The Serpentlord Seethes", -- big snake fate
             },
-            blacklistedFates= {}
-        }
+            blacklistedFates = {},
+        },
     },
     {
-        zoneName="Heritage Found",
-        zoneId=1191,
-        fatesList= {
-            collectionsFates= {
-                { fateName="License to Dill", npcName="Tonawawtan Provider" },
-                { fateName="When It's So Salvage", npcName="Refined Reforger" }
+        zoneName = "Heritage Found",
+        zoneId = 1191,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "License to Dill", npcName = "Tonawawtan Provider" },
+                { fateName = "When It's So Salvage", npcName = "Refined Reforger" },
             },
-            otherNpcFates= {
-                { fateName="It's Super Defective", npcName="Novice Hunter" },
-                { fateName="Running of the Katobleps", npcName="Novice Hunter" },
-                { fateName="Ware the Wolves", npcName="Imperiled Hunter" },
-                { fateName="Domo Arigato", npcName="Perplexed Reforger" },
-                { fateName="Old Stampeding Grounds", npcName="Driftdowns Reforger" },
-                { fateName="Pulling the Wool", npcName="Panicked Courier" }
+            otherNpcFates = {
+                { fateName = "It's Super Defective", npcName = "Novice Hunter" },
+                { fateName = "Running of the Katobleps", npcName = "Novice Hunter" },
+                { fateName = "Ware the Wolves", npcName = "Imperiled Hunter" },
+                { fateName = "Domo Arigato", npcName = "Perplexed Reforger" },
+                { fateName = "Old Stampeding Grounds", npcName = "Driftdowns Reforger" },
+                { fateName = "Pulling the Wool", npcName = "Panicked Courier" },
             },
             fatesWithContinuations = {
-                { fateName="Domo Arigato", continuationIsBoss=false }
+                { fateName = "Domo Arigato", continuationIsBoss = false },
             },
-            blacklistedFates= {
+            blacklistedFates = {
                 "When It's So Salvage", -- terrain is terrible
-                "print('I hate snakes')"
-            }
-        }
+                "print('I hate snakes')",
+            },
+        },
     },
     {
-        zoneName="Living Memory",
-        zoneId=1192,
-        fatesList= {
-            collectionsFates= {
-                { fateName="Seeds of Tomorrow", npcName="Unlost Sentry GX" },
-                { fateName="Scattered Memories", npcName="Unlost Sentry GX" }
+        zoneName = "Living Memory",
+        zoneId = 1192,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Seeds of Tomorrow", npcName = "Unlost Sentry GX" },
+                { fateName = "Scattered Memories", npcName = "Unlost Sentry GX" },
             },
-            otherNpcFates= {
-                { fateName="Canal Carnage", npcName="Unlost Sentry GX" },
-                { fateName="Mascot March", npcName="The Grand Marshal" }
+            otherNpcFates = {
+                { fateName = "Canal Carnage", npcName = "Unlost Sentry GX" },
+                { fateName = "Mascot March", npcName = "The Grand Marshal" },
             },
-            fatesWithContinuations =
-            {
-                { fateName="Plumbers Don't Fear Slimes", continuationIsBoss=true },
-                { fateName="Mascot March", continuationIsBoss=true }
+            fatesWithContinuations = {
+                { fateName = "Plumbers Don't Fear Slimes", continuationIsBoss = true },
+                { fateName = "Mascot March", continuationIsBoss = true },
             },
-            specialFates =
-            {
-                "Mascot Murder"
+            specialFates = {
+                "Mascot Murder",
             },
-            blacklistedFates= {
+            blacklistedFates = {
                 "Plumbers Don't Fear Slimes", --Causing Script to crash
-            }
-        }
-    }
+            },
+        },
+    },
 }
+
 end)
 return __bundle_require("__root")
