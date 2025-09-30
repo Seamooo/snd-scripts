@@ -385,13 +385,13 @@ end
 ---@field aetheryteList AetheryteTable[]
 ---@field flying boolean
 
+---@param zoneId number
 ---@return ZoneFateInfoExt
-function GetCurrentZone()
+function GetZoneFromId(zoneId)
     local zoneInfo = nil
-    local targetZoneId = Svc.ClientState.TerritoryType
 
     for _, zone in ipairs(FatesData) do
-        if targetZoneId == zone.zoneId then
+        if zoneId == zone.zoneId then
             zoneInfo = zone
         end
     end
@@ -399,7 +399,7 @@ function GetCurrentZone()
         yield("/echo [FATE] Current zone is only partially supported. No data on npc fates.")
         zoneInfo = {
             zoneName = "",
-            zoneId = targetZoneId,
+            zoneId = zoneId,
             fatesList = {
                 collectionsFates = {},
                 otherNpcFates = {},
@@ -430,6 +430,11 @@ function GetCurrentZone()
         table.insert(rv.aetheryteList, aetheryteTable)
     end
     return rv
+end
+
+---@return ZoneFateInfoExt
+function GetCurrentZone()
+    return GetZoneFromId(Svc.ClientState.TerritoryType)
 end
 
 ---Returns the closest aetheryte if a teleport would be faster else nil

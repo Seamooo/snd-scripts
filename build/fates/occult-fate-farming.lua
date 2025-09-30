@@ -1,3 +1,308 @@
+-- Bundled by luabundle {"version":"1.7.0"}
+local __bundle_require, __bundle_loaded, __bundle_register, __bundle_modules = (function(superRequire)
+	local loadingPlaceholder = {[{}] = true}
+
+	local register
+	local modules = {}
+
+	local require
+	local loaded = {}
+
+	register = function(name, body)
+		if not modules[name] then
+			modules[name] = body
+		end
+	end
+
+	require = function(name)
+		local loadedModule = loaded[name]
+
+		if loadedModule then
+			if loadedModule == loadingPlaceholder then
+				return nil
+			end
+		else
+			if not modules[name] then
+				if not superRequire then
+					local identifier = type(name) == 'string' and '\"' .. name .. '\"' or tostring(name)
+					error('Tried to require ' .. identifier .. ', but no such module has been registered')
+				else
+					return superRequire(name)
+				end
+			end
+
+			loaded[name] = loadingPlaceholder
+			loadedModule = modules[name](require, loaded, register, modules)
+			loaded[name] = loadedModule
+		end
+
+		return loadedModule
+	end
+
+	return require, loaded, register, modules
+end)(require)
+__bundle_register("__root", function(require, _LOADED, __bundle_register, __bundle_modules)
+--[=====[
+[[SND Metadata]]
+author: seamooo || forked from baanderson40 || orginially pot0to
+version: 0.0.1
+description: |
+  Fate farming script with the following features:
+  - Switch between fates when reaching target demiatma amount
+  - Can purchase Bicolor Gemstone Vouchers (both old and new) when your gemstones are almost capped
+  - Priority system for Fate selection: distance w/ teleport > most progress > is bonus fate > least time left > distance
+  - Will prioritize Forlorns when they show up during Fate
+  - Can do all fates, including NPC collection fates
+  - Revives upon death and gets back to fate farming
+  - Attempts to change instances when there are no fates left in the zone
+  - Can process your retainers and Grand Company turn ins, then get back to fate farming
+  - Autobuys gysahl greens and grade 8 dark matter when you run out
+plugin_dependencies:
+- Lifestream
+- vnavmesh
+- TextAdvance
+configs:
+  Rotation Plugin:
+    description: What roation plugin to use?
+    default: "Any"
+    is_choice: true
+    choices: ["Any", "Wrath", "RotationSolver","BossMod", "BossModReborn"]
+  Dodging Plugin:
+    description: What dodging plugin to use. If your Rotation plugin is BMR or VBM, this will be overriden.
+    default: "Any"
+    is_choice: true
+    choices: ["Any", "BossMod", "BossModReborn", "None"]
+  BMR/VBM Specific settings:
+    description: "--- BMR/VBM Specific settings if you are using one of them as your rotation plugin ---"
+    default: false
+  Single Target Rotation:
+    description: Preset name with single strategies (for forlorns). TURN OFF AUTOMATIC TARGETING FOR THIS PRESET
+    default: ""
+  AoE Rotation:
+    description: Preset with AoE and Buff Strategies.
+    default: ""
+  Hold Buff Rotation:
+    description: Preset to hold 2min burst when progress gets to select percent
+    default: ""
+  Percentage to Hold Buff:
+    description: Ideally you want to make full use of your buffs, higher then 70% will still waste a few seconds if progress is too fast.
+    default: 65
+  Food:
+    description: Leave blank if you dont want to use any food. If its HQ include <hq> next to the name "Baked Eggplant <hq>"
+    default: ""
+  Potion:
+    description: Leave blank if you dont want to use any potions. If its HQ include <hq> next to the name "Superior Spiritbond Potion <hq>"
+    default: ""
+  Max melee distance:
+    default: 2.5
+    min: 0
+    max: 30
+  Max ranged distance:
+    default: 20
+    min: 0
+    max: 30
+  Ignore FATE if progress is over (%):
+    default: 80
+    min: 0
+    max: 100
+  Ignore FATE if duration is less than (mins):
+    default: 3
+    min: 0
+    max: 100
+  Ignore boss FATEs until progress is at least (%):
+    default: 0
+    min: 0
+    max: 100
+  Ignore Special FATEs until progress is at least (%):
+    default: 20
+    min: 0
+    max: 100
+  Do collection FATEs?:
+    default: true
+  Do only bonus FATEs?:
+    default: false
+  Forlorns:
+    description: Forlorns to attack.
+    default: "All"
+    is_choice: true
+    choices: ["All", "Small", "None"]
+  Change instances if no FATEs?:
+    default: false
+  Exchange bicolor gemstones for:
+    description: Choose none if you dont want to spend your bicolors.
+    default: "Turali Bicolor Gemstone Voucher"
+    is_choice: true
+    choices: ["None",
+        "Alexandrian Axe Beak Wing",
+        "Alpaca Fillet",
+        "Almasty Fur",
+        "Amra",
+        "Berkanan Sap",
+        "Bicolor Gemstone Voucher",
+        "Bird of Elpis Breast",
+        "Branchbearer Fruit",
+        "Br'aax Hide",
+        "Dynamis Crystal",
+        "Dynamite Ash",
+        "Egg of Elpis",
+        "Gaja Hide",
+        "Gargantua Hide",
+        "Gomphotherium Skin",
+        "Hammerhead Crocodile Skin",
+        "Hamsa Tenderloin",
+        "Kumbhira Skin",
+        "Lesser Apollyon Shell",
+        "Lunatender Blossom",
+        "Luncheon Toad Skin",
+        "Megamaguey Pineapple",
+        "Mousse Flesh",
+        "Nopalitender Tuna",
+        "Ovibos Milk",
+        "Ophiotauros Hide",
+        "Petalouda Scales",
+        "Poison Frog Secretions",
+        "Rroneek Chuck",
+        "Rroneek Fleece",
+        "Saiga Hide",
+        "Silver Lobo Hide",
+        "Swampmonk Thigh",
+        "Tumbleclaw Weeds",
+        "Turali Bicolor Gemstone Voucher",
+        "Ty'aitya Wingblade",
+        "Ut'ohmu Siderite"]
+  Chocobo Companion Stance:
+    description: Will not summon chocobo if set to "None"
+    default: "Healer"
+    is_choice: true
+    choices: ["Follow", "Free", "Defender", "Healer", "Attacker", "None"]
+  Buy Gysahl Greens?:
+    description: Automatically buys a 99 stack of Gysahl Greens from the Limsa gil vendor if none in inventory.
+    default: true
+  Self repair?:
+    description: If checked, will attempt to repair your gear. If not checked, will go to Limsa mender.
+    default: true
+  Pause for retainers?:
+    default: true
+  Dump extra gear at GC?:
+    description: Used with retainers, in case they come back with too much stuff and clog your inventory.
+    default: true
+  Return on death?:
+    description: Auto accept the box to return to home aetheryte when you die.
+    default: true
+  Echo logs:
+    description: Debug level of logs.
+    default: "Gems"
+    is_choice: true
+    choices: ["All", "Gems", "None"]
+[[End Metadata]]
+--]=====]
+--[[
+
+********************************************************************************
+*                                  Changelog                                   *
+********************************************************************************
+    -> 0.0.1 wip integration with encapsulation fate farm
+********************************************************************************
+*                               Required Plugins                               *
+********************************************************************************
+
+Plugins that are needed for it to work:
+
+    -> Something Need Doing [Expanded Edition] : (Main Plugin for everything to work)   https://puni.sh/api/repository/croizat
+    -> VNavmesh :   (for Pathing/Moving)    https://puni.sh/api/repository/veyn
+    -> Some form of rotation plugin for attacking enemies. Options are:
+        -> RotationSolver Reborn: https://raw.githubusercontent.com/FFXIV-CombatReborn/CombatRebornRepo/main/pluginmaster.json
+        -> BossMod Reborn: https://raw.githubusercontent.com/FFXIV-CombatReborn/CombatRebornRepo/main/pluginmaster.json
+        -> Veyns BossMod: https://puni.sh/api/repository/veyn
+        -> Wrath Combo: https://love.puni.sh/ment.json
+    -> Some form of AI dodging. Options are:
+        -> BossMod Reborn: https://raw.githubusercontent.com/FFXIV-CombatReborn/CombatRebornRepo/main/pluginmaster.json
+        -> Veyns BossMod: https://puni.sh/api/repository/veyn
+    -> TextAdvance: (for interacting with Fate NPCs) https://github.com/NightmareXIV/MyDalamudPlugins/raw/main/pluginmaster.json
+    -> Lifestream :  (for changing Instances [ChangeInstance][Exchange]) https://raw.githubusercontent.com/NightmareXIV/MyDalamudPlugins/main/pluginmaster.json
+
+********************************************************************************
+*                                Optional Plugins                              *
+********************************************************************************
+
+This Plugins are Optional and not needed unless you have it enabled in the settings:
+
+    -> AutoRetainer : (for Retainers [Retainers])   https://love.puni.sh/ment.json
+    -> YesAlready : (for extracting materia)
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+]]
+require("libfate-automation")
+require("liboccult-data")
+
+local REQUIRED_ATMA_COUNT = 3
+
+---@return ItemInfo?
+local function nextAtma()
+    for _, atmaInfo in ipairs(Atmas) do
+        if Inventory.GetItemCount(atmaInfo.itemId) < REQUIRED_ATMA_COUNT then
+            return atmaInfo
+        end
+    end
+    return nil
+end
+
+---@param automator FateAutomation
+---@return fun(): boolean?
+local function mkAutomatorAtmaIterator(automator)
+    local currAtma = nextAtma()
+    if currAtma ~= nil then
+        automator:setCurrentZone(currAtma.zoneId)
+    end
+    return function()
+        if currAtma == nil then
+            return nil
+        end
+        automator:run()
+        if Inventory.GetItemCount(currAtma.itemId) >= REQUIRED_ATMA_COUNT then
+            currAtma = nextAtma()
+            if currAtma == nil then
+                return nil
+            end
+            automator:setCurrentZone(currAtma.zoneId)
+        end
+        return true
+    end
+end
+
+local function main()
+    local config = FateAutomationConfig.default()
+    local automator = FateAutomation.new(config)
+    -- need to run once to initialise
+    -- XXX(seamooo) this is a terrible pattern, rethink this
+    automator:run()
+    ---@diagnostic disable-next-line: empty-block
+    for _ in mkAutomatorAtmaIterator(automator) do
+    end
+end
+
+main()
+
+end)
+__bundle_register("liboccult-data", function(require, _LOADED, __bundle_register, __bundle_modules)
+---@class ItemInfo
+---@field zoneName string
+---@field zoneId number
+---@field itemName string
+---@field itemId number
+
+---@type ItemInfo[]
+Atmas = {
+    { zoneName = "Urqopacha", zoneId = 1187, itemName = "Azurite Demiatma", itemId = 47744 },
+    { zoneName = "Kozama'uka", zoneId = 1188, itemName = "Verdigris Demiatma", itemId = 47745 },
+    { zoneName = "Yak T'el", zoneId = 1189, itemName = "Malachite Demiatma", itemId = 47746 },
+    { zoneName = "Shaaloani", zoneId = 1190, itemName = "Realgar Demiatma", itemId = 47747 },
+    { zoneName = "Heritage Found", zoneId = 1191, itemName = "Caput Mortuum Demiatma", itemId = 47748 },
+    { zoneName = "Living Memory", zoneId = 1192, itemName = "Orpiment Demiatma", itemId = 47749 },
+}
+
+end)
+__bundle_register("libfate-automation", function(require, _LOADED, __bundle_register, __bundle_modules)
 require("libfate-data")
 require("libfate-utils-v2")
 
@@ -1902,3 +2207,1602 @@ function FateAutomation:run()
     -- release control for 0.1 to allow game state to update in between calls
     yield("/wait 0.1")
 end
+
+end)
+__bundle_register("libfate-utils-v2", function(require, _LOADED, __bundle_register, __bundle_modules)
+require("libfate-data")
+
+---logs source line number
+---@return integer line number
+function __LINE__()
+    return debug.getinfo(2, "l").currentline
+end
+
+---@generic T: {[string]: any}
+---@param val T
+function DbgTable(val)
+    local rv = "{"
+    local firstElem = true
+    for k, v in pairs(val) do
+        if not firstElem then
+            rv = rv .. ", "
+        end
+        firstElem = false
+        rv = rv .. '{"' .. k .. '": ' .. tostring(v) .. "}"
+    end
+    rv = rv .. "}"
+    return rv
+end
+
+---@generic T
+---@param val T[]
+---@return string
+function StringifyArray(val)
+    local rv = "{"
+    for idx, x in ipairs(val) do
+        if idx ~= 1 then
+            rv = rv .. ", "
+        end
+        rv = rv .. tostring(x)
+    end
+    rv = rv .. "}"
+    return rv
+end
+
+---@param name string
+---@returns boolean
+function HasPlugin(name)
+    for plugin in luanet.each(Svc.PluginInterface.InstalledPlugins) do
+        if plugin.InternalName == name and plugin.IsLoaded then
+            return true
+        end
+    end
+    return false
+end
+
+---@enum ChocoboStance
+ChocoboStance = {
+    Follow = 0,
+    Free = 1,
+    Defender = 2,
+    Healer = 3,
+    Attacker = 4,
+}
+
+---@return string
+---@params stance ChocoboStance
+function StringifyChocoboStance(stance)
+    local stringsTable = {
+        [ChocoboStance.Follow] = "Follow",
+        [ChocoboStance.Free] = "Free",
+        [ChocoboStance.Defender] = "Defender",
+        [ChocoboStance.Healer] = "Healer",
+        [ChocoboStance.Attacker] = "Attacker",
+    }
+    local rv = stringsTable[stance]
+    if rv == nil then
+        return ""
+    end
+    return rv
+end
+
+---@param pos1 System_Numerics_Vector3
+---@param pos2 System_Numerics_Vector3
+---@return number
+function DistanceBetween(pos1, pos2)
+    local dx = pos1.X - pos2.X
+    local dy = pos1.Y - pos2.Y
+    local dz = pos1.Z - pos2.Z
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+---@param vec3 System_Numerics_Vector3
+---@return number
+function GetDistanceToPoint(vec3)
+    return DistanceBetween(Svc.ClientState.LocalPlayer.Position, vec3)
+end
+
+---@return number
+function GetDistanceToTarget()
+    if Svc.Targets.Target ~= nil then
+        return GetDistanceToPoint(Svc.Targets.Target.Position)
+    else
+        return math.maxinteger
+    end
+end
+
+---@return number
+function GetDistanceToTargetFlat()
+    if Svc.Targets.Target ~= nil then
+        return GetDistanceToPointFlat(Svc.Targets.Target.Position)
+    else
+        return math.maxinteger
+    end
+end
+
+---@param vec3 System_Numerics_Vector3
+---@return number
+function GetDistanceToPointFlat(vec3)
+    return DistanceBetweenFlat(Svc.ClientState.LocalPlayer.Position, vec3)
+end
+
+---@param pos1 System_Numerics_Vector3
+---@param pos2 System_Numerics_Vector3
+---@return number
+function DistanceBetweenFlat(pos1, pos2)
+    local dx = pos1.X - pos2.X
+    local dz = pos1.Z - pos2.Z
+    return math.sqrt(dx * dx + dz * dz)
+end
+
+---@param position System_Numerics_Vector3
+---@param maxDistance number
+---@return System_Numerics_Vector3
+function RandomAdjustCoordinates(position, maxDistance)
+    local angle = math.random() * 2 * math.pi
+    local x_adjust = maxDistance * math.random()
+    local z_adjust = maxDistance * math.random()
+
+    local randomX = position.X + (x_adjust * math.cos(angle))
+    local randomY = position.Y + maxDistance
+    local randomZ = position.Z + (z_adjust * math.sin(angle))
+
+    return Vector3(randomX, randomY, randomZ)
+end
+
+function EorzeaTimeToUnixTime(eorzeaTime)
+    return eorzeaTime / (144 / 7) -- 24h Eorzea Time equals 70min IRL
+end
+
+---@param zoneId number
+---@returns IAetheryteEntry[]
+function GetAetherytesInZone(zoneId)
+    local aetherytesInZone = {}
+    for _, aetheryte in ipairs(Svc.AetheryteList) do
+        if aetheryte.TerritoryId == zoneId then
+            table.insert(aetherytesInZone, aetheryte)
+        end
+    end
+    return aetherytesInZone
+end
+
+---@param aetheryte IAetheryteEntry
+---@return string
+function GetAetheryteName(aetheryte)
+    local name = aetheryte.AetheryteData.Value.PlaceName.Value.Name:GetText()
+    if name ~= nil then
+        return name
+    end
+    return ""
+end
+
+---@param fate FateWrapper
+---@return boolean
+function IsFateActive(fate)
+    if fate.State == nil then
+        return false
+    else
+        return fate.State ~= FateState.Ending and fate.State ~= FateState.Ended and fate.State ~= FateState.Failed
+    end
+end
+
+---@return boolean
+function InActiveFate()
+    local activeFates = Fates.GetActiveFates()
+    for i = 0, activeFates.Count - 1 do
+        if activeFates[i].InFate == true and IsFateActive(activeFates[i]) then
+            return true
+        end
+    end
+    return false
+end
+
+---@param vec3 System_Numerics_Vector3
+---@param teleportTimePenalty number
+---@param zone ZoneFateInfoExt
+function DistanceFromClosestAetheryteToPoint(vec3, teleportTimePenalty, zone)
+    local rv = math.maxinteger
+    for _, aetheryte in ipairs(zone.aetheryteList) do
+        local distanceAetheryteToFate = DistanceBetween(aetheryte.position, vec3)
+        local comparisonDistance = distanceAetheryteToFate + teleportTimePenalty
+        if comparisonDistance < rv then
+            rv = comparisonDistance
+        end
+    end
+    return rv
+end
+
+---TODO(seamooo) this can be made much more precise
+---@param vec3 System_Numerics_Vector3
+---@param zone ZoneFateInfoExt
+---@return number
+function GetDistanceToPointWithAetheryteTravel(vec3, zone)
+    -- Get the direct flight distance (no aetheryte)
+    local directFlightDistance = GetDistanceToPoint(vec3)
+    -- Get the distance to the closest aetheryte, including teleportation penalty
+    local distanceToAetheryte = DistanceFromClosestAetheryteToPoint(vec3, 200, zone)
+
+    -- Return the minimum distance, either via direct flight or via the closest aetheryte travel
+    if distanceToAetheryte == nil then
+        return directFlightDistance
+    else
+        return math.min(directFlightDistance, distanceToAetheryte)
+    end
+end
+
+---@param zoneId number
+---@param position System_Numerics_Vector3
+function SetMapFlag(zoneId, position)
+    Instances.Map.Flag:SetFlagMapMarker(zoneId, position.X, position.Z)
+end
+
+local function mysplit(inputstr)
+    for str in string.gmatch(inputstr, "[^%.]+") do
+        return str
+    end
+end
+
+local function load_type(type_path)
+    local assembly = mysplit(type_path)
+    luanet.load_assembly(assembly)
+    local type_var = luanet.import_type(type_path)
+    return type_var
+end
+
+-- TODO(seamooo) should make a preamble that loads below
+
+---@type fun(obj: IGameObject):EntityWrapper
+EntityWrapper = load_type("SomethingNeedDoing.LuaMacro.Wrappers.EntityWrapper")
+
+---@type ObjectKindEnum
+ObjectKind = load_type("Dalamud.Game.ClientState.Objects.Enums.ObjectKind")
+
+---@type NameplateKindEnum
+NameplateKind = load_type("ECommons.GameFunctions.NameplateKind")
+
+function AttemptToTargetClosestFateEnemy()
+    local closestTarget = nil
+    local closestTargetDistance = math.maxinteger
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
+        end
+    end
+    if closestTarget ~= nil then
+        Svc.Targets.Target = closestTarget
+    end
+end
+
+---XXX(seamooo) make non-blocking version of this
+---@param addonName string
+---@param nodePath number
+---@param ... number
+function GetNodeText(addonName, nodePath, ...)
+    local addon = Addons.GetAddon(addonName)
+    while not addon.Ready do
+        yield("/wait 0.25")
+    end
+    return addon:GetNode(nodePath, ...).Text
+end
+
+---@param destinationAetheryte string
+function AcceptTeleportOfferLocation(destinationAetheryte)
+    if Addons.GetAddon("_NotificationTelepo").Ready then
+        local location = GetNodeText("_NotificationTelepo", 3, 4)
+        yield("/callback _Notification true 0 16 " .. location)
+        yield("/wait 1")
+    end
+
+    if Addons.GetAddon("SelectYesno").Ready then
+        local teleportOfferMessage = GetNodeText("SelectYesno", 1, 2)
+        if type(teleportOfferMessage) == "string" then
+            local teleportOfferLocation = teleportOfferMessage:match("Accept Teleport to (.+)%?")
+            if
+                teleportOfferLocation ~= nil
+                and string.lower(teleportOfferLocation) == string.lower(destinationAetheryte)
+            then
+                yield("/callback SelectYesno true 0") -- accept teleport
+                return
+            end
+            yield("/callback SelectYesno true 2") -- decline teleport
+            return
+        end
+    end
+end
+
+---@param timeout number?
+---@param logHook (fun(message: string))?
+---@return fun(aetheryteName: string): boolean
+function NewTeleportManager(timeout, logHook)
+    local timeoutConcrete = 60
+    if timeout ~= nil then
+        timeoutConcrete = timeout
+    end
+    local logger = Dalamud.LogDebug
+    if logHook ~= nil then
+        logger = logHook
+    end
+
+    ---@type number?
+    local lastTeleportTimestamp = nil
+
+    ---@param aetheryteName string
+    ---@return boolean
+    local rv = function(aetheryteName)
+        local now = os.clock()
+        if lastTeleportTimestamp == nil or now - lastTeleportTimestamp > 2 then
+            -- below executes teleport and blocks until finished or timeout
+            yield("/li tp " .. aetheryteName)
+            yield("/wait 1")
+            while Svc.Condition[CharacterCondition.casting] do
+                if os.clock() - now > timeoutConcrete then
+                    logger("TeleportManager timeout reached while waiting for cast")
+                    return false
+                end
+                yield("/wait 0.1")
+            end
+            local castFinishedTime = os.clock()
+            yield("/wait 1")
+            while Svc.Condition[CharacterCondition.betweenAreas] do
+                if os.clock() - castFinishedTime > timeoutConcrete then
+                    logger("TeleportManager timeout reached while waiting for cast")
+                    return false
+                end
+                yield("/wait 0.1")
+            end
+        end
+        lastTeleportTimestamp = now
+        return true
+    end
+    return rv
+end
+
+---@return number
+function GetTargetHitboxRadius()
+    if Svc.Targets.Target ~= nil then
+        return Svc.Targets.Target.HitboxRadius
+    end
+    return 0
+end
+
+---@return number
+function GetPlayerHitboxRadius()
+    if Svc.ClientState.LocalPlayer ~= nil then
+        return Svc.ClientState.LocalPlayer.HitboxRadius
+    end
+    return 0
+end
+
+---@param v System_Numerics_Vector2
+function Normalize(v)
+    local len = v:Length()
+    if len == 0 then
+        return v
+    end
+    return v / len
+end
+
+---@class AetheryteTable
+---@field name string
+---@field id string
+---@field position System_Numerics_Vector3
+---@field aetheryteObj IAetheryteEntry
+
+---@class ZoneFateInfoExt: ZoneFateInfo
+---@field aetheryteList AetheryteTable[]
+---@field flying boolean
+
+---@param zoneId number
+---@return ZoneFateInfoExt
+function GetZoneFromId(zoneId)
+    local zoneInfo = nil
+
+    for _, zone in ipairs(FatesData) do
+        if zoneId == zone.zoneId then
+            zoneInfo = zone
+        end
+    end
+    if zoneInfo == nil then
+        yield("/echo [FATE] Current zone is only partially supported. No data on npc fates.")
+        zoneInfo = {
+            zoneName = "",
+            zoneId = zoneId,
+            fatesList = {
+                collectionsFates = {},
+                otherNpcFates = {},
+                bossFates = {},
+                blacklistedFates = {},
+                fatesWithContinuations = {},
+            },
+        }
+    end
+    local flying = zoneInfo.flying
+    ---@type ZoneFateInfoExt
+    local rv = {
+        zoneName = zoneInfo.zoneName,
+        zoneId = zoneInfo.zoneId,
+        fatesList = zoneInfo.fatesList,
+        flying = flying == nil or flying,
+        aetheryteList = {},
+    }
+    local aetherytes = GetAetherytesInZone(zoneInfo.zoneId)
+    for _, aetheryte in ipairs(aetherytes) do
+        local aetherytePos = Instances.Telepo:GetAetherytePosition(aetheryte.AetheryteId)
+        local aetheryteTable = {
+            name = GetAetheryteName(aetheryte),
+            id = aetheryte.AetheryteId,
+            position = aetherytePos,
+            aetheryteObj = aetheryte,
+        }
+        table.insert(rv.aetheryteList, aetheryteTable)
+    end
+    return rv
+end
+
+---@return ZoneFateInfoExt
+function GetCurrentZone()
+    return GetZoneFromId(Svc.ClientState.TerritoryType)
+end
+
+---Returns the closest aetheryte if a teleport would be faster else nil
+---@param position System_Numerics_Vector3
+---@param teleportTimePenalty number yalms travelled during teleport cast
+---@param zone ZoneFateInfoExt current zone
+---@return AetheryteTable?
+function GetClosestAetheryte(position, teleportTimePenalty, zone)
+    ---@type AetheryteTable?
+    local rv = nil
+    local closestTravelDistance = math.maxinteger
+    for _, aetheryte in ipairs(zone.aetheryteList) do
+        local distanceAetheryteToFate = DistanceBetween(aetheryte.position, position)
+        local comparisonDistance = distanceAetheryteToFate + teleportTimePenalty
+        if comparisonDistance < closestTravelDistance then
+            closestTravelDistance = comparisonDistance
+            rv = aetheryte
+        end
+    end
+    return rv
+end
+
+---Returns the closest aetheryte if a teleport would be faster else nil
+---@param position System_Numerics_Vector3
+---@param teleportTimePenalty number yalms travelled during teleport cast
+---@param zone ZoneFateInfoExt current zone
+---@return AetheryteTable?
+function GetClosestAetheryteToPoint(position, teleportTimePenalty, zone)
+    local directFlightDistance = GetDistanceToPoint(position)
+    local closestAetheryte = GetClosestAetheryte(position, teleportTimePenalty, zone)
+    if closestAetheryte ~= nil then
+        local closestAetheryteDistance = DistanceBetween(position, closestAetheryte.position) + teleportTimePenalty
+
+        if closestAetheryteDistance < directFlightDistance then
+            return closestAetheryte
+        end
+    end
+    return nil
+end
+
+---@return boolean
+function AttemptToTargetClosestFateEnemy()
+    local closestTarget = nil
+    local closestTargetDistance = math.maxinteger
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and obj:IsHostile() and not obj.IsDead and EntityWrapper(obj).FateId > 0 then
+            local dist = GetDistanceToPoint(obj.Position)
+            if dist < closestTargetDistance then
+                closestTargetDistance = dist
+                closestTarget = obj
+            end
+        end
+    end
+    if closestTarget ~= nil then
+        Svc.Targets.Target = closestTarget
+        return true
+    end
+    return false
+end
+
+---@return string
+function GetTargetName()
+    if Svc.Targets.Target ~= nil then
+        return Svc.Targets.Target.Name.TextValue
+    end
+    return ""
+end
+
+function AcceptNPCFateOrRejectOtherYesno()
+    if Addons.GetAddon("SelectYesno").Ready then
+        local dialogBox = GetNodeText("SelectYesno", 1, 2)
+        if type(dialogBox) == "string" and dialogBox:find("The recommended level for this FATE is") then
+            yield("/callback SelectYesno true 0") --accept fate
+        else
+            yield("/callback SelectYesno true 1") --decline all other boxes
+        end
+    end
+end
+
+---@return number
+function GetBuddyTimeRemaining()
+    return Instances.Buddy.CompanionInfo.TimeLeft
+end
+
+---Unselects current target
+function ClearTarget()
+    Svc.Targets.Target = nil
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return boolean
+function IsCollectionsFate(fateName, zone)
+    for _, collectionsFate in ipairs(zone.fatesList.collectionsFates) do
+        if collectionsFate.fateName == fateName then
+            return true
+        end
+    end
+    return false
+end
+
+---@param fate FateWrapper
+---@return boolean
+function IsBossFate(fate)
+    return fate.IconId == 60722
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return boolean
+function IsOtherNpcFate(fateName, zone)
+    for _, otherNpcFate in ipairs(zone.fatesList.otherNpcFates) do
+        if otherNpcFate.fateName == fateName then
+            return true
+        end
+    end
+    return false
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return boolean
+function IsSpecialFate(fateName, zone)
+    if zone.fatesList.specialFates == nil then
+        return false
+    end
+    for _, specialFate in ipairs(zone.fatesList.specialFates) do
+        if specialFate == fateName then
+            return true
+        end
+    end
+    return false
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return boolean
+function IsBlacklistedFate(fateName, zone)
+    for _, blacklistedFate in ipairs(zone.fatesList.blacklistedFates) do
+        if blacklistedFate == fateName then
+            return true
+        end
+    end
+    return false
+end
+
+---@param fateName string
+---@param zone ZoneFateInfoExt
+---@return string
+function GetFateNpcName(fateName, zone)
+    for i, fate in ipairs(zone.fatesList.otherNpcFates) do
+        if fate.fateName == fateName then
+            return fate.npcName
+        end
+    end
+    for i, fate in ipairs(zone.fatesList.collectionsFates) do
+        if fate.fateName == fateName then
+            return fate.npcName
+        end
+    end
+    return ""
+end
+
+---@return boolean
+function TargetBattle()
+    yield("/battletarget")
+    yield("/wait 0.1")
+    return Svc.Targets.Target ~= nil and Svc.Targets.Target:IsHostile()
+end
+
+---@class FateObjInfo
+---@field obj IGameObject
+---@field nameplateKind NameplateKind
+---@field distance number
+---@field maxHp number
+---@field currHp number
+---@field kind ObjectKind
+---@field name string
+
+---@return FateObjInfo
+---@param obj IGameObject
+function BuildFateObjInfo(obj)
+    local tpEntity = EntityWrapper(obj)
+    return {
+        obj = obj,
+        nameplateKind = obj:GetNameplateKind(),
+        distance = GetDistanceToPoint(obj.Position),
+        maxHp = tpEntity.MaxHp,
+        currHp = tpEntity.CurrentHp,
+        kind = obj.ObjectKind,
+        name = tpEntity.Name,
+    }
+end
+
+---Target an idle fate mob if one exists. Priority
+---will be current target -> closest target
+---excludes forlorns
+---returns true if an entity to target was found
+---@param fate FateWrapper
+---@boolean
+function TargetIdleFateMob(fate)
+    local currTarget = Svc.Targets.Target
+    if currTarget ~= nil then
+        local currTargetInfo = BuildFateObjInfo(currTarget)
+        if currTargetInfo.nameplateKind == NameplateKind.HostileNotEngaged then
+            -- current target is still deaggroed, no need to find a new target
+            return true
+        end
+    end
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id then
+            local info = BuildFateObjInfo(obj)
+            if info.nameplateKind == NameplateKind.HostileNotEngaged and not string.find(info.name, "Forlorn") then
+                if bestObjInfo == nil or bestObjInfo.distance > info.distance then
+                    bestObjInfo = info
+                end
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
+end
+
+---@param fate FateWrapper
+---@return boolean
+function TargetFateGatherable(fate)
+    local currTarget = Svc.Targets.Target
+    if currTarget ~= nil then
+        local currTargetInfo = BuildFateObjInfo(currTarget)
+        if currTargetInfo.kind == ObjectKind.EventObj then
+            -- current target is still a gatherable, no need to find a new target
+            return true
+        end
+    end
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable then
+            local info = BuildFateObjInfo(obj)
+            if info.kind == ObjectKind.EventObj then
+                if bestObjInfo == nil or bestObjInfo.distance > info.distance then
+                    bestObjInfo = info
+                end
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
+end
+
+---@param fate FateWrapper
+function TargetFateAdds(fate)
+    local currTarget = Svc.Targets.Target
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    if currTarget ~= nil then
+        bestObjInfo = BuildFateObjInfo(currTarget)
+    end
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
+            local info = BuildFateObjInfo(obj)
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
+                if bestObjInfo == nil or bestObjInfo.maxHp > info.maxHp then
+                    bestObjInfo = info
+                end
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        if currTarget == bestObjInfo.obj then
+            -- do nothing
+            return true
+        end
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
+end
+
+---@param fate FateWrapper
+function TargetFateBoss(fate)
+    local currTarget = Svc.Targets.Target
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    if currTarget ~= nil then
+        bestObjInfo = BuildFateObjInfo(currTarget)
+    end
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
+            local info = BuildFateObjInfo(obj)
+            if info.maxHp > 1 and not string.find(info.name, "Forlorn") then
+                if bestObjInfo == nil or bestObjInfo.maxHp < info.maxHp then
+                    bestObjInfo = info
+                end
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        if currTarget == bestObjInfo.obj then
+            -- do nothing
+            return true
+        end
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
+end
+
+---@return boolean
+function TargetForlornMaiden()
+    yield("/target Forlorn Maiden")
+    -- really don't like not just returning a truthy statement but type system
+    -- didn't think it reduced to a boolean
+    if Svc.Targets.Target ~= nil and string.find(tostring(Svc.Targets.Target.Name), "Forlorn") then
+        return true
+    end
+    return false
+end
+
+---@return boolean
+function TargetForlorn()
+    yield("/target The Forlorn")
+    if Svc.Targets.Target ~= nil and string.find(tostring(Svc.Targets.Target.Name), "Forlorn") then
+        return true
+    end
+    return false
+end
+
+---Targets the closest fate mob indiscriminant of any
+---other properties
+---@param fate FateWrapper
+---@return boolean
+function TargetClosestFateMob(fate)
+    ---@type FateObjInfo?
+    local bestObjInfo = nil
+    for i = 0, Svc.Objects.Length - 1 do
+        local obj = Svc.Objects[i]
+        if obj ~= nil and obj.IsTargetable and EntityWrapper(obj).FateId == fate.Id and obj:IsHostile() then
+            local info = BuildFateObjInfo(obj)
+            if bestObjInfo == nil or bestObjInfo.distance > info.distance then
+                bestObjInfo = info
+            end
+        end
+    end
+    if bestObjInfo ~= nil then
+        Svc.Targets.Target = bestObjInfo.obj
+        return true
+    end
+    return false
+end
+
+---@param statusId number
+---@return boolean
+function HasStatusId(statusId)
+    local statusList = Svc.ClientState.LocalPlayer.StatusList
+    if statusList == nil then
+        return false
+    end
+    for i = 0, statusList.Length - 1 do
+        if statusList[i].StatusId == statusId then
+            return true
+        end
+    end
+    return false
+end
+
+---@return boolean
+function TurnOnTextAdvance()
+    if IPC.TextAdvance == nil then
+        return false
+    end
+    if IPC.TextAdvance.IsEnabled() then
+        return true
+    end
+    yield("/at y")
+    return true
+end
+
+end)
+__bundle_register("libfate-data", function(require, _LOADED, __bundle_register, __bundle_modules)
+import("System.Numerics")
+CharacterCondition = {
+    dead = 2,
+    mounted = 4,
+    inCombat = 26,
+    casting = 27,
+    occupiedInEvent = 31,
+    occupiedInQuestEvent = 32,
+    occupied = 33,
+    boundByDuty34 = 34,
+    occupiedMateriaExtractionAndRepair = 39,
+    betweenAreas = 45,
+    jumping48 = 48,
+    jumping61 = 61,
+    occupiedSummoningBell = 50,
+    betweenAreasForDuty = 51,
+    boundByDuty56 = 56,
+    mounting57 = 57,
+    mounting64 = 64,
+    beingMoved = 70,
+    flying = 77,
+}
+
+-- TODO(seamooo) investigate if below is dead code
+-- ClassList =
+-- {
+--     gla = { classId=1, className="Gladiator", isMelee=true, isTank=true },
+--     pgl = { classId=2, className="Pugilist", isMelee=true, isTank=false },
+--     mrd = { classId=3, className="Marauder", isMelee=true, isTank=true },
+--     lnc = { classId=4, className="Lancer", isMelee=true, isTank=false },
+--     arc = { classId=5, className="Archer", isMelee=false, isTank=false },
+--     cnj = { classId=6, className="Conjurer", isMelee=false, isTank=false },
+--     thm = { classId=7, className="Thaumaturge", isMelee=false, isTank=false },
+--     pld = { classId=19, className="Paladin", isMelee=true, isTank=true },
+--     mnk = { classId=20, className="Monk", isMelee=true, isTank=false },
+--     war = { classId=21, className="Warrior", isMelee=true, isTank=true },
+--     drg = { classId=22, className="Dragoon", isMelee=true, isTank=false },
+--     brd = { classId=23, className="Bard", isMelee=false, isTank=false },
+--     whm = { classId=24, className="White Mage", isMelee=false, isTank=false },
+--     blm = { classId=25, className="Black Mage", isMelee=false, isTank=false },
+--     acn = { classId=26, className="Arcanist", isMelee=false, isTank=false },
+--     smn = { classId=27, className="Summoner", isMelee=false, isTank=false },
+--     sch = { classId=28, className="Scholar", isMelee=false, isTank=false },
+--     rog = { classId=29, className="Rogue", isMelee=false, isTank=false },
+--     nin = { classId=30, className="Ninja", isMelee=true, isTank=false },
+--     mch = { classId=31, className="Machinist", isMelee=false, isTank=false},
+--     drk = { classId=32, className="Dark Knight", isMelee=true, isTank=true },
+--     ast = { classId=33, className="Astrologian", isMelee=false, isTank=false },
+--     sam = { classId=34, className="Samurai", isMelee=true, isTank=false },
+--     rdm = { classId=35, className="Red Mage", isMelee=false, isTank=false },
+--     blu = { classId=36, className="Blue Mage", isMelee=false, isTank=false },
+--     gnb = { classId=37, className="Gunbreaker", isMelee=true, isTank=true },
+--     dnc = { classId=38, className="Dancer", isMelee=false, isTank=false },
+--     rpr = { classId=39, className="Reaper", isMelee=true, isTank=false },
+--     sge = { classId=40, className="Sage", isMelee=false, isTank=false },
+--     vpr = { classId=41, className="Viper", isMelee=true, isTank=false },
+--     pct = { classId=42, className="Pictomancer", isMelee=false, isTank=false }
+-- }
+
+BicolorExchangeData = {
+    {
+        shopKeepName = "Gadfrid",
+        zoneName = "Old Sharlayan",
+        zoneId = 962,
+        aetheryteName = "Old Sharlayan",
+        position = Vector3(78, 5, -37),
+        shopItems = {
+            { itemName = "Bicolor Gemstone Voucher", itemIndex = 8, price = 100 },
+            { itemName = "Ovibos Milk", itemIndex = 9, price = 2 },
+            { itemName = "Hamsa Tenderloin", itemIndex = 10, price = 2 },
+            { itemName = "Yakow Chuck", itemIndex = 11, price = 2 },
+            { itemName = "Bird of Elpis Breast", itemIndex = 12, price = 2 },
+            { itemName = "Egg of Elpis", itemIndex = 13, price = 2 },
+            { itemName = "Amra", itemIndex = 14, price = 2 },
+            { itemName = "Dynamis Crystal", itemIndex = 15, price = 2 },
+            { itemName = "Almasty Fur", itemIndex = 16, price = 2 },
+            { itemName = "Gaja Hide", itemIndex = 17, price = 2 },
+            { itemName = "Luncheon Toad Skin", itemIndex = 18, price = 2 },
+            { itemName = "Saiga Hide", itemIndex = 19, price = 2 },
+            { itemName = "Kumbhira Skin", itemIndex = 20, price = 2 },
+            { itemName = "Ophiotauros Hide", itemIndex = 21, price = 2 },
+            { itemName = "Berkanan Sap", itemIndex = 22, price = 2 },
+            { itemName = "Dynamite Ash", itemIndex = 23, price = 2 },
+            { itemName = "Lunatender Blossom", itemIndex = 24, price = 2 },
+            { itemName = "Mousse Flesh", itemIndex = 25, price = 2 },
+            { itemName = "Petalouda Scales", itemIndex = 26, price = 2 },
+        },
+    },
+    {
+        shopKeepName = "Beryl",
+        zoneName = "Solution Nine",
+        zoneId = 1186,
+        aetheryteName = "Solution Nine",
+        position = Vector3(-198.47, 0.92, -6.95),
+        miniAethernet = {
+            name = "Nexus Arcade",
+            position = Vector3(-157.74, 0.29, 17.43),
+        },
+        shopItems = {
+            { itemName = "Turali Bicolor Gemstone Voucher", itemIndex = 6, price = 100 },
+            { itemName = "Alpaca Fillet", itemIndex = 7, price = 3 },
+            { itemName = "Swampmonk Thigh", itemIndex = 8, price = 3 },
+            { itemName = "Rroneek Chuck", itemIndex = 9, price = 3 },
+            { itemName = "Megamaguey Pineapple", itemIndex = 10, price = 3 },
+            { itemName = "Branchbearer Fruit", itemIndex = 11, price = 3 },
+            { itemName = "Nopalitender Tuna", itemIndex = 12, price = 3 },
+            { itemName = "Rroneek Fleece", itemIndex = 13, price = 3 },
+            { itemName = "Silver Lobo Hide", itemIndex = 14, price = 3 },
+            { itemName = "Hammerhead Crocodile Skin", itemIndex = 15, price = 3 },
+            { itemName = "Br'aax Hide", itemIndex = 16, price = 3 },
+            { itemName = "Gomphotherium Skin", itemIndex = 17, price = 3 },
+            { itemName = "Gargantua Hide", itemIndex = 18, price = 3 },
+            { itemName = "Ty'aitya Wingblade", itemIndex = 19, price = 3 },
+            { itemName = "Poison Frog Secretions", itemIndex = 20, price = 3 },
+            { itemName = "Alexandrian Axe Beak Wing", itemIndex = 21, price = 3 },
+            { itemName = "Lesser Apollyon Shell", itemIndex = 22, price = 3 },
+            { itemName = "Tumbleclaw Weeds", itemIndex = 23, price = 3 },
+        },
+    },
+    {
+        shopKeepName = "Rral Wuruq",
+        zoneName = "Yak T'el",
+        zoneId = 1189,
+        aetheryteName = "Iq Br'aax",
+        position = Vector3(-381, 23, -436),
+        shopItems = {
+            { itemName = "Ut'ohmu Siderite", itemIndex = 8, price = 600 },
+        },
+    },
+}
+
+---@class FateInfo
+---@field fateName string
+---@field npcName string
+
+---@class ContinuationFateInfo
+---@field fateName string
+---@field continuationIsBoss boolean
+
+---@class FatesList
+---@field collectionsFates FateInfo[]
+---@field otherNpcFates FateInfo[]
+---@field fatesWithContinuations (ContinuationFateInfo|string)[]
+---@field specialFates string[]?
+---@field blacklistedFates string[]
+
+---@class ZoneFateInfo
+---@field zoneName string
+---@field zoneId number
+---@field fatesList FatesList
+---@field flying boolean?
+
+---@type ZoneFateInfo[]
+FatesData = {
+    {
+        zoneName = "Middle La Noscea",
+        zoneId = 134,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Thwack-a-Mole", npcName = "Troubled Tiller" },
+                { fateName = "Yellow-bellied Greenbacks", npcName = "Yellowjacket Drill Sergeant" },
+                { fateName = "The Orange Boxes", npcName = "Farmer in Need" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Lower La Noscea",
+        zoneId = 135,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Away in a Bilge Hold", npcName = "Yellowjacket Veteran" },
+                { fateName = "Fight the Flower", npcName = "Furious Farmer" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Central Thanalan",
+        zoneId = 141,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Let them Eat Cactus", npcName = "Hungry Hobbledehoy" },
+            },
+            otherNpcFates = {
+                { fateName = "A Few Arrows Short of a Quiver", npcName = "Crestfallen Merchant" },
+                { fateName = "Wrecked Rats", npcName = "Coffer & Coffin Heavy" },
+                { fateName = "Something to Prove", npcName = "Cowardly Challenger" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Eastern Thanalan",
+        zoneId = 145,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Attack on Highbridge: Denouement", npcName = "Brass Blade" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Southern Thanalan",
+        zoneId = 146,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+        flying = false,
+    },
+    {
+        zoneName = "Outer La Noscea",
+        zoneId = 180,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+        flying = false,
+    },
+    {
+        zoneName = "Coerthas Central Highlands",
+        zoneId = 155,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            specialFates = {
+                "He Taketh It with His Eyes", --behemoth
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Coerthas Western Highlands",
+        zoneId = 397,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Mor Dhona",
+        zoneId = 156,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Sea of Clouds",
+        zoneId = 401,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Azys Lla",
+        zoneId = 402,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Dravanian Forelands",
+        zoneId = 398,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            specialFates = {
+                "Coeurls Chase Boys Chase Coeurls", --coeurlregina
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Dravanian Hinterlands",
+        zoneId = 399,
+        tpZoneId = 478,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Churning Mists",
+        zoneId = 400,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Fringes",
+        zoneId = 612,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Showing The Recruits What For", npcName = "Storm Commander Bharbennsyn" },
+                { fateName = "Get Sharp", npcName = "M Tribe Youth" },
+            },
+            otherNpcFates = {
+                { fateName = "The Mail Must Get Through", npcName = "Storm Herald" },
+                { fateName = "The Antlion's Share", npcName = "M Tribe Ranger" },
+                { fateName = "Double Dhara", npcName = "Resistence Fighter" },
+                { fateName = "Keeping the Peace", npcName = "Resistence Fighter" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Peaks",
+        zoneId = 620,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Fletching Returns", npcName = "Sorry Sutler" },
+            },
+            otherNpcFates = {
+                { fateName = "Resist, Die, Repeat", npcName = "Wounded Fighter" },
+                { fateName = "And the Bandits Played On", npcName = "Frightened Villager" },
+                { fateName = "Forget-me-not", npcName = "Coldhearth Resident" },
+                { fateName = "Of Mice and Men", npcName = "Furious Farmer" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {
+                "The Magitek Is Back", --escort
+                "A New Leaf", --escort
+            },
+        },
+    },
+    {
+        zoneName = "The Lochs",
+        zoneId = 621,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            specialFates = {
+                "A Horse Outside", --ixion
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Ruby Sea",
+        zoneId = 613,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Treasure Island", npcName = "Blue Avenger" },
+                { fateName = "The Coral High Ground", npcName = "Busy Beachcomber" },
+            },
+            otherNpcFates = {
+                { fateName = "Another One Bites The Dust", npcName = "Pirate Youth" },
+                { fateName = "Ray Band", npcName = "Wounded Confederate" },
+                { fateName = "Bilge-hold Jin", npcName = "Green Confederate" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Yanxia",
+        zoneId = 614,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Rice and Shine", npcName = "Flabbergasted Farmwife" },
+                { fateName = "More to Offer", npcName = "Ginko" },
+            },
+            otherNpcFates = {
+                { fateName = "Freedom Flies", npcName = "Kinko" },
+                { fateName = "A Tisket, a Tasket", npcName = "Gyogun of the Most Bountiful Catch" },
+            },
+            specialFates = {
+                "Foxy Lady", --foxyyy
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Azim Steppe",
+        zoneId = 622,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "The Dataqi Chronicles: Duty", npcName = "Altani" },
+            },
+            otherNpcFates = {
+                { fateName = "Rock for Food", npcName = "Oroniri Youth" },
+                { fateName = "Killing Dzo", npcName = "Olkund Dzotamer" },
+                { fateName = "They Shall Not Want", npcName = "Mol Shepherd" },
+                { fateName = "A Good Day to Die", npcName = "Qestiri Merchant" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Lakeland",
+        zoneId = 813,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Pick-up Sticks", npcName = "Crystarium Botanist" },
+            },
+            otherNpcFates = {
+                { fateName = "Subtle Nightshade", npcName = "Artless Dodger" },
+                { fateName = "Economic Peril", npcName = "Jobb Guard" },
+            },
+            fatesWithContinuations = {
+                "Behind Anemone Lines",
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Kholusia",
+        zoneId = 814,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Ironbeard Builders - Rebuilt", npcName = "Tholl Engineer" },
+            },
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            specialFates = {
+                "A Finale Most Formidable", --formidable
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Amh Araeng",
+        zoneId = 815,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {
+                "Tolba No. 1", -- pathing is really bad to enemies
+            },
+        },
+    },
+    {
+        zoneName = "Il Mheg",
+        zoneId = 816,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Twice Upon a Time", npcName = "Nectar-seeking Pixie" },
+            },
+            otherNpcFates = {
+                { fateName = "Once Upon a Time", npcName = "Nectar-seeking Pixie" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Rak'tika Greatwood",
+        zoneId = 817,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Picking up the Pieces", npcName = "Night's Blessed Missionary" },
+                { fateName = "Pluck of the Draw", npcName = "Myalna Bowsing" },
+                { fateName = "Monkeying Around", npcName = "Fanow Warder" },
+            },
+            otherNpcFates = {
+                { fateName = "Queen of the Harpies", npcName = "Fanow Huntress" },
+                { fateName = "Shot Through the Hart", npcName = "Qilmet Redspear" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "The Tempest",
+        zoneId = 818,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Low Coral Fiber", npcName = "Teushs Ooan" },
+                { fateName = "Pearls Apart", npcName = "Ondo Spearfisher" },
+            },
+            otherNpcFates = {
+                { fateName = "Where has the Dagon", npcName = "Teushs Ooan" },
+                { fateName = "Ondo of Blood", npcName = "Teushs Ooan" },
+                { fateName = "Lookin' Back on the Track", npcName = "Teushs Ooan" },
+            },
+            fatesWithContinuations = {},
+            specialFates = {
+                "The Head, the Tail, the Whole Damned Thing", --archaeotania
+            },
+            blacklistedFates = {
+                "Coral Support", -- escort fate
+                "The Seashells He Sells", -- escort fate
+            },
+        },
+    },
+    {
+        zoneName = "Labyrinthos",
+        zoneId = 956,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Sheaves on the Wind", npcName = "Vexed Researcher" },
+                { fateName = "Moisture Farming", npcName = "Well-moisturized Researcher" },
+            },
+            otherNpcFates = {},
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Thavnair",
+        zoneId = 957,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Full Petal Alchemist: Perilous Pickings", npcName = "Sajabaht" },
+            },
+            otherNpcFates = {},
+            specialFates = {
+                "Devout Pilgrims vs. Daivadipa", --daveeeeee
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Garlemald",
+        zoneId = 958,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Parts Unknown", npcName = "Displaced Engineer" },
+            },
+            otherNpcFates = {
+                { fateName = "Artificial Malevolence: 15 Minutes to Comply", npcName = "Keltlona" },
+                { fateName = "Artificial Malevolence: The Drone Army", npcName = "Ebrelnaux" },
+                { fateName = "Artificial Malevolence: Unmanned Aerial Villains", npcName = "Keltlona" },
+                { fateName = "Amazing Crates", npcName = "Hardy Refugee" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Mare Lamentorum",
+        zoneId = 959,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "What a Thrill", npcName = "Thrillingway" },
+            },
+            otherNpcFates = {
+                { fateName = "Lepus Lamentorum: Dynamite Disaster", npcName = "Warringway" },
+                { fateName = "Lepus Lamentorum: Cleaner Catastrophe", npcName = "Fallingway" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {
+                "Hunger Strikes", --really bad line of sight with rocks, get stuck not doing anything quite often
+            },
+        },
+    },
+    {
+        zoneName = "Ultima Thule",
+        zoneId = 960,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Omicron Recall: Comms Expansion", npcName = "N-6205" },
+            },
+            otherNpcFates = {
+                { fateName = "Wings of Glory", npcName = "Ahl Ein's Kin" },
+                { fateName = "Omicron Recall: Secure Connection", npcName = "N-6205" },
+                { fateName = "Only Just Begun", npcName = "Myhk Nehr" },
+            },
+            specialFates = {
+                "Omicron Recall: Killing Order", --chi
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Elpis",
+        zoneId = 961,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "So Sorry, Sokles", npcName = "Flora Overseer" },
+            },
+            otherNpcFates = {
+                { fateName = "Grand Designs: Unknown Execution", npcName = "Meletos the Inscrutable" },
+                { fateName = "Grand Designs: Aigokeros", npcName = "Meletos the Inscrutable" },
+                { fateName = "Nature's Staunch Protector", npcName = "Monoceros Monitor" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Urqopacha",
+        zoneId = 1187,
+        fatesList = {
+            collectionsFates = {},
+            otherNpcFates = {
+                { fateName = "Pasture Expiration Date", npcName = "Tsivli Stoutstrider" },
+                { fateName = "Gust Stop Already", npcName = "Mourning Yok Huy" },
+                { fateName = "Lay Off the Horns", npcName = "Yok Huy Vigilkeeper" },
+                { fateName = "Birds Up", npcName = "Coffee Farmer" },
+                { fateName = "Salty Showdown", npcName = "Chirwagur Sabreur" },
+                { fateName = "Fire Suppression", npcName = "Tsivli Stoutstrider" },
+                { fateName = "Panaq Attack", npcName = "Pelupelu Peddler" },
+            },
+            fatesWithContinuations = {
+                { fateName = "Salty Showdown", continuationIsBoss = true },
+            },
+            blacklistedFates = {
+                "Young Volcanoes",
+                "Wolf Parade", -- multiple Pelupelu Peddler npcs, rng whether it tries to talk to the right one
+                "Panaq Attack", -- multiple Pelupleu Peddler npcs
+            },
+        },
+    },
+    {
+        zoneName = "Kozama'uka",
+        zoneId = 1188,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Borne on the Backs of Burrowers", npcName = "Moblin Forager" },
+                { fateName = "Combing the Area", npcName = "Hanuhanu Combmaker" },
+            },
+            otherNpcFates = {
+                { fateName = "There's Always a Bigger Beast", npcName = "Hanuhanu Angler" },
+                { fateName = "Toucalibri at That Game", npcName = "Hanuhanu Windscryer" },
+                { fateName = "Putting the Fun in Fungicide", npcName = "Bagnobrok Craftythoughts" },
+                { fateName = "Reeds in Need", npcName = "Hanuhanu Farmer" },
+                { fateName = "Tax Dodging", npcName = "Pelupelu Peddler" },
+            },
+            fatesWithContinuations = {},
+            blacklistedFates = {
+                "Mole Patrol",
+                "Tax Dodging", -- multiple Pelupelu Peddlers
+            },
+        },
+    },
+    {
+        zoneName = "Yak T'el",
+        zoneId = 1189,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Escape Shroom", npcName = "Hoobigo Forager" },
+            },
+            otherNpcFates = {
+                { fateName = "Could've Found Something Bigger", npcName = "Xbr'aal Hunter" },
+                { fateName = "La Selva se lo Llevó", npcName = "Xbr'aal Hunter" },
+                { fateName = "Stabbing Gutward", npcName = "Doppro Spearbrother" },
+                { fateName = "Porting is Such Sweet Sorrow", npcName = "Hoobigo Porter" },
+                { fateName = "Stick it to the Mantis", npcName = "Xbr'aal Sentry" },
+            },
+            fatesWithContinuations = {
+                "Stabbing Gutward",
+            },
+            blacklistedFates = {
+                "The Departed",
+                "Could've Found Something Bigger", -- 2 npcs named the same thing
+                "Stick it to the Mantis", -- 2 npcs named the same thing
+                "La Selva se lo Llevó", -- 2 pncs named the same thing
+            },
+        },
+    },
+    {
+        zoneName = "Shaaloani",
+        zoneId = 1190,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Gonna Have Me Some Fur", npcName = "Tonawawtan Trapper" },
+                { fateName = "The Serpentlord Sires", npcName = "Br'uk Vaw of the Setting Sun" },
+            },
+            otherNpcFates = {
+                { fateName = "The Dead Never Die", npcName = "Tonawawtan Worker" }, --22 boss
+                { fateName = "Ain't What I Herd", npcName = "Hhetsarro Herder" }, --23 normal
+                { fateName = "Helms off to the Bull", npcName = "Hhetsarro Herder" }, --22 boss
+                { fateName = "A Raptor Runs Through It", npcName = "Hhetsarro Angler" }, --24 tower defense
+                { fateName = "The Serpentlord Suffers", npcName = "Br'uk Vaw of the Setting Sun" },
+                { fateName = "That's Me and the Porter", npcName = "Pelupelu Peddler" },
+            },
+            fatesWithContinuations = {
+                "The Serpentlord Sires",
+            },
+            specialFates = {
+                "The Serpentlord Seethes", -- big snake fate
+            },
+            blacklistedFates = {},
+        },
+    },
+    {
+        zoneName = "Heritage Found",
+        zoneId = 1191,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "License to Dill", npcName = "Tonawawtan Provider" },
+                { fateName = "When It's So Salvage", npcName = "Refined Reforger" },
+            },
+            otherNpcFates = {
+                { fateName = "It's Super Defective", npcName = "Novice Hunter" },
+                { fateName = "Running of the Katobleps", npcName = "Novice Hunter" },
+                { fateName = "Ware the Wolves", npcName = "Imperiled Hunter" },
+                { fateName = "Domo Arigato", npcName = "Perplexed Reforger" },
+                { fateName = "Old Stampeding Grounds", npcName = "Driftdowns Reforger" },
+                { fateName = "Pulling the Wool", npcName = "Panicked Courier" },
+            },
+            fatesWithContinuations = {
+                { fateName = "Domo Arigato", continuationIsBoss = false },
+            },
+            blacklistedFates = {
+                "When It's So Salvage", -- terrain is terrible
+                "print('I hate snakes')",
+            },
+        },
+    },
+    {
+        zoneName = "Living Memory",
+        zoneId = 1192,
+        fatesList = {
+            collectionsFates = {
+                { fateName = "Seeds of Tomorrow", npcName = "Unlost Sentry GX" },
+                { fateName = "Scattered Memories", npcName = "Unlost Sentry GX" },
+            },
+            otherNpcFates = {
+                { fateName = "Canal Carnage", npcName = "Unlost Sentry GX" },
+                { fateName = "Mascot March", npcName = "The Grand Marshal" },
+            },
+            fatesWithContinuations = {
+                { fateName = "Plumbers Don't Fear Slimes", continuationIsBoss = true },
+                { fateName = "Mascot March", continuationIsBoss = true },
+            },
+            specialFates = {
+                "Mascot Murder",
+            },
+            blacklistedFates = {
+                "Plumbers Don't Fear Slimes", --Causing Script to crash
+            },
+        },
+    },
+}
+
+end)
+return __bundle_require("__root")

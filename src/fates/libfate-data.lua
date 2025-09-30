@@ -669,17 +669,20 @@ FatesData = {
                 { fateName = "Escape Shroom", npcName = "Hoobigo Forager" },
             },
             otherNpcFates = {
-                --{ fateName=, npcName="Xbr'aal Hunter" }, 2 npcs names same thing....
+                { fateName = "Could've Found Something Bigger", npcName = "Xbr'aal Hunter" },
                 { fateName = "La Selva se lo Llevó", npcName = "Xbr'aal Hunter" },
                 { fateName = "Stabbing Gutward", npcName = "Doppro Spearbrother" },
                 { fateName = "Porting is Such Sweet Sorrow", npcName = "Hoobigo Porter" },
-                -- { fateName="Stick it to the Mantis", npcName="Xbr'aal Sentry" }, -- 2 npcs named same thing.....
+                { fateName = "Stick it to the Mantis", npcName = "Xbr'aal Sentry" },
             },
             fatesWithContinuations = {
                 "Stabbing Gutward",
             },
             blacklistedFates = {
                 "The Departed",
+                "Could've Found Something Bigger", -- 2 npcs named the same thing
+                "Stick it to the Mantis", -- 2 npcs named the same thing
+                "La Selva se lo Llevó", -- 2 pncs named the same thing
             },
         },
     },

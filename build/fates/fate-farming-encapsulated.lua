@@ -1125,6 +1125,9 @@ function FateAutomation:selectNextFate()
             rv = fateTable
         end
     end
+    if rv ~= nil then
+        self:logDebug("selected fate: " .. rv.fateName)
+    end
     return rv
 end
 
@@ -2133,6 +2136,13 @@ function FateAutomation:handleEvents()
     end
 end
 
+---@param zoneId number
+function FateAutomation:setCurrentZone(zoneId)
+    self.currentFate = nil
+    self.currentZone = GetZoneFromId(zoneId)
+    self:updateState(AutomationState.Ready)
+end
+
 function FateAutomation:run()
     self:handleEvents()
     self.currentState.Exec()
@@ -2529,13 +2539,13 @@ end
 ---@field aetheryteList AetheryteTable[]
 ---@field flying boolean
 
+---@param zoneId number
 ---@return ZoneFateInfoExt
-function GetCurrentZone()
+function GetZoneFromId(zoneId)
     local zoneInfo = nil
-    local targetZoneId = Svc.ClientState.TerritoryType
 
     for _, zone in ipairs(FatesData) do
-        if targetZoneId == zone.zoneId then
+        if zoneId == zone.zoneId then
             zoneInfo = zone
         end
     end
@@ -2543,7 +2553,7 @@ function GetCurrentZone()
         yield("/echo [FATE] Current zone is only partially supported. No data on npc fates.")
         zoneInfo = {
             zoneName = "",
-            zoneId = targetZoneId,
+            zoneId = zoneId,
             fatesList = {
                 collectionsFates = {},
                 otherNpcFates = {},
@@ -2574,6 +2584,11 @@ function GetCurrentZone()
         table.insert(rv.aetheryteList, aetheryteTable)
     end
     return rv
+end
+
+---@return ZoneFateInfoExt
+function GetCurrentZone()
+    return GetZoneFromId(Svc.ClientState.TerritoryType)
 end
 
 ---Returns the closest aetheryte if a teleport would be faster else nil
@@ -3638,17 +3653,20 @@ FatesData = {
                 { fateName = "Escape Shroom", npcName = "Hoobigo Forager" },
             },
             otherNpcFates = {
-                --{ fateName=, npcName="Xbr'aal Hunter" }, 2 npcs names same thing....
+                { fateName = "Could've Found Something Bigger", npcName = "Xbr'aal Hunter" },
                 { fateName = "La Selva se lo Llevó", npcName = "Xbr'aal Hunter" },
                 { fateName = "Stabbing Gutward", npcName = "Doppro Spearbrother" },
                 { fateName = "Porting is Such Sweet Sorrow", npcName = "Hoobigo Porter" },
-                -- { fateName="Stick it to the Mantis", npcName="Xbr'aal Sentry" }, -- 2 npcs named same thing.....
+                { fateName = "Stick it to the Mantis", npcName = "Xbr'aal Sentry" },
             },
             fatesWithContinuations = {
                 "Stabbing Gutward",
             },
             blacklistedFates = {
                 "The Departed",
+                "Could've Found Something Bigger", -- 2 npcs named the same thing
+                "Stick it to the Mantis", -- 2 npcs named the same thing
+                "La Selva se lo Llevó", -- 2 pncs named the same thing
             },
         },
     },
